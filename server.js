@@ -51,7 +51,7 @@ function remember(id){requestIds.set(id,Date.now()+30*60_000);offerIds.set(id,ne
 function known(id){return typeof id==='string'&&/^orq_[a-zA-Z0-9_]+$/.test(id)&&requestIds.get(id)>Date.now()}
 async function jsonBody(req){let v='';for await(const chunk of req){v+=chunk;if(v.length>12_000)throw new Error('Search request is too large.')}return JSON.parse(v)}
 async function listOffers(requestId,after=''){
-  const p=new URLSearchParams({offer_request_id:requestId,limit:'100',sort:'total_amount',max_connections:'3'});
+  const p=new URLSearchParams({offer_request_id:requestId,limit:'100',sort:'total_amount',max_connections:'2'});
   if(after)p.set('after',after);
   const result=await callDuffel('/air/offers?'+p);
   for(const offer of result.data||[])offerIds.get(requestId)?.add(offer.id);
@@ -71,7 +71,7 @@ async function handler(req,res){
         const cabins=['economy','premium_economy','business','first'];const cabin=capped(d.cabin||'',30).toLowerCase().replace(/ /g,'_');if(!cabins.includes(cabin))return respond(res,400,{error:'Unsupported cabin class.'});
         const passengers=[...Array(counts[0])].map(()=>({type:'adult'})).concat([...Array(counts[1])].map(()=>({type:'child'})),[...Array(counts[2])].map(()=>({type:'infant_without_seat'})));
         const slices=legs.map(l=>({origin:l.from.toUpperCase(),destination:l.to.toUpperCase(),departure_date:l.date}));
-        const created=await callDuffel('/air/offer_requests?return_offers=false&supplier_timeout=25000',{method:'POST',body:{data:{slices,passengers,cabin_class:cabin,max_connections:3}}});
+        const created=await callDuffel('/air/offer_requests?return_offers=false&supplier_timeout=25000',{method:'POST',body:{data:{slices,passengers,cabin_class:cabin,max_connections:2}}});
         const requestId=created.data?.id;if(!requestId)throw new Error('No offer request ID returned by provider.');
         remember(requestId);const offers=await listOffers(requestId);
         return respond(res,200,{...offers,liveMode:created.data?.live_mode===true,source:'Duffel',searchedAt:new Date().toISOString()});
