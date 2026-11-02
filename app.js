@@ -28,9 +28,10 @@
   // The sources below provide logo artwork for airline identification, where available.
   // For guaranteed offline/production use, obtain permission and host licensed logo PNGs locally.
   const logoSources = code => [
+    `/api/airline-logo/${encodeURIComponent(code)}`, // same image used by PDF; prefer bundled assets
     `https://pics.avs.io/200/200/${encodeURIComponent(code)}.png`,
-    `https://images.kiwi.com/airlines/64/${encodeURIComponent(code)}.png`,
-    `https://cdn.jsdelivr.net/gh/spydogenesis/airlines-logo@latest/airlines-logo/200x200_v2/${encodeURIComponent(code)}.png`
+    `https://cdn.jsdelivr.net/gh/spydogenesis/airlines-logo@main/airlines-logo/200x200_v2/${encodeURIComponent(code)}.png`,
+    `https://images.kiwi.com/airlines/64/${encodeURIComponent(code)}.png`
   ];
   function airlineBadge(name,code='',extra='') {
     const key=code||airlineCodes[name]||'EF', color=airlineColor[key]||'#2258ad';
@@ -285,7 +286,7 @@
         date:liveDate(seg.departingAt),isoDate:seg.departingAt.slice(0,10),arrivalDate:liveDate(seg.arrivingAt),
         departureTime:liveTime(seg.departingAt),arrivalTime:liveTime(seg.arrivingAt),flightNo:seg.flightNumber||'See provider',
         aircraft:seg.aircraft||'Check with airline',terminalFrom:seg.originTerminal||'Check with airline',terminalTo:seg.destinationTerminal||'Check with airline',
-        baggage:seg.baggage||'Check with airline',cabin:state.search.cabin,duration:seg.duration,routeIndex:si+1,operatingAirline:seg.operatingAirline
+        baggage:seg.baggage||'Check with airline',cabin:state.search.cabin,duration:seg.duration,routeIndex:si+1,operatingAirline:seg.operatingAirline,operatingCode:seg.operatingCode||seg.marketingCode
       })));
       return {liveOffer:true,providerLive:!!state.live.liveMode,carrier:mainCarrier(o),carrierCode:mainCarrierCode(o),plan:'Supplier flight offer',
         bookingReference:`EF-${sampleRef()}`,demoCode:sampleRef(),airlinePnr:'NOT ISSUED',bookingStatus:'UNBOOKED AIRLINE OFFER',
@@ -339,7 +340,7 @@
     state.search={trip:state.trip,from:legs[0].from,to:legs[0].to,departure:legs[0].date,returnDate:state.returnDate,segments:legs,adults:state.adults,children:state.children,infants:state.infants,cabin:state.cabin};state.selected=null;state.travellers=[];state.passportScan={};state.routeFilter='all';state.liveStopFilter='all';state.compare=[];state.live={status:'loading',offers:[],after:null,requestId:null,visibleLimit:25,loadingMore:false,error:''};navigate('results');doLiveSearch();}
   function doHotels(){if(!state.hotelCity.trim()){state.error='Enter a city or hotel destination.';render();return;}if(!state.checkin||!state.checkout||state.checkin<today()||state.checkout<=state.checkin){state.error='Choose valid check-in and check-out dates.';render();return;}state.hotelSearch={city:state.hotelCity.trim(),checkin:state.checkin,checkout:state.checkout,guests:state.hotelGuests};state.error='';navigate('hotel-results');}
   function goHome(tab='flight'){state.tab=tab;state.passengersOpen=false;navigate('home');setTimeout(()=>document.getElementById('flight-search')?.scrollIntoView({behavior:'smooth',block:'center'}),30);}
-  document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.action;if(act==='close-modal' && b.classList.contains('modal-backdrop') && e.target!==b)return;
+  document.addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.action;if(act==='close-modal' && b.classList.contains('modal-backdrop') && e.target!==b)return;
     if(act==='save-route'){const q=state.search||{from:state.from,to:state.to,departure:state.departure,returnDate:state.returnDate,trip:state.trip,cabin:state.cabin};const obj={from:q.from,to:q.to,date:q.departure,returnDate:q.trip==='round'?q.returnDate:'',trip:q.trip,cabin:q.cabin};if(!state.savedTrips.some(x=>JSON.stringify(x)===JSON.stringify(obj))){state.savedTrips.unshift(obj);state.savedTrips=state.savedTrips.slice(0,12);storeSaved(state.savedTrips);}state.toolMessage='Route saved on this browser.';render();return;}
     if(act==='saved'){navigate('saved');return;}
     if(act==='use-saved'){const v=state.savedTrips[Number(b.dataset.index)];if(v){state.from=v.from;state.to=v.to;state.departure=v.date;state.returnDate=v.returnDate||addDays(7,v.date);state.trip=v.trip==='multi'?'round':v.trip;state.cabin=v.cabin;goHome();}return;}
@@ -379,7 +380,7 @@
       const feedback=document.getElementById('pdf-feedback');
       try{
         if(!window.ExploreFlightsPDF)throw new Error('PDF generator did not load. Try the full ZIP version.');
-        const name=window.ExploreFlightsPDF.download(itineraryData());
+        const name=await window.ExploreFlightsPDF.download(itineraryData());
         if(feedback)feedback.textContent=`PDF generated: ${name}. Check your browser downloads.`;
       }catch(error){if(feedback)feedback.textContent=`Could not download PDF: ${error.message}`;console.error(error);}
       return;
