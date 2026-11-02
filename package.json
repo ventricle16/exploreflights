@@ -3,6 +3,13 @@
   "version": "2.0.0",
   "private": true,
   "description": "Responsive Explore Flights website with server-side live airline offer search",
-  "scripts": {"start": "node server.js", "dev": "node --watch server.js", "test": "node --test tests/*.test.js"},
-  "engines": {"node": ">=20"}
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test tests/*.test.js",
+    "logos:sync": "node scripts/sync-airline-logos.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
