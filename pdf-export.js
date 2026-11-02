@@ -25,6 +25,12 @@
       const n=this.images.push(jpeg);
       this.emit(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${(H-y-h).toFixed(2)} cm /Im${n} Do Q`);
     }
+    // Keep genuine airline marks in their original aspect ratio (no stretching).
+    fittedImage(jpeg,x,y,w,h){
+      if(!jpeg?.width||!jpeg?.height)return;
+      const ratio=Math.min(w/jpeg.width,h/jpeg.height),iw=jpeg.width*ratio,ih=jpeg.height*ratio;
+      this.image(jpeg,x+(w-iw)/2,y+(h-ih)/2,iw,ih);
+    }
     file(){
       const enc=new TextEncoder(), parts=[];let totalBytes=0;
       const append=v=>{const bytes=typeof v==='string'?enc.encode(v):v;parts.push(bytes);totalBytes+=bytes.length};
@@ -55,22 +61,41 @@
     }
   }
   async function loadJpeg(url){
-    // Cross-origin logo requests are made via the Explore Flights server; no traveler data is sent.
-    const image=new Image();image.decoding='async';image.src=url;
-    try{await image.decode()}catch{return null}
-    const canvas=document.createElement('canvas');canvas.width=Math.max(1,image.naturalWidth);canvas.height=Math.max(1,image.naturalHeight);
-    const ctx=canvas.getContext('2d');ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);
-    try{ctx.drawImage(image,0,0);const data=canvas.toDataURL('image/jpeg',.94).split(',')[1];
-      const raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
-      return {width:canvas.width,height:canvas.height,bytes}
-    }catch{return null}
+    // Use same-origin routes to avoid canvas CORS issues. No passenger data is sent.
+    // Fetch first so HTML errors or missing logo assets cannot be mistaken for images.
+    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),14000);
+    try{
+      const response=await fetch(url,{signal:controller.signal,cache:'no-cache'});
+      if(!response.ok||!/^image\/(png|jpeg)/i.test(response.headers.get('content-type')||''))return null;
+      const blob=await response.blob();
+      const objectUrl=URL.createObjectURL(blob);
+      try{
+        const image=new Image();image.src=objectUrl;await image.decode();
+        if(!image.naturalWidth||!image.naturalHeight) return null;
+        const canvas=document.createElement('canvas');
+        canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+        const ctx=canvas.getContext('2d');if(!ctx)return null;
+        ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);
+        const data=canvas.toDataURL('image/jpeg',.96).split(',')[1];
+        const raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+        return {width:canvas.width,height:canvas.height,bytes};
+      }finally{URL.revokeObjectURL(objectUrl)}
+    }catch{return null}finally{clearTimeout(timeout)}
   }
   async function generate(d){
     if(!d?.segments?.length||!d?.travelers?.length)throw Error('Complete your flight selection and passenger details first.');
     const pdf=new PDF();let y=0,page=1;
-    const iataCode=String(d.carrierCode||'').toUpperCase().slice(0,2);
-    const logo=await loadJpeg(`/api/airline-logo/${encodeURIComponent(iataCode)}`);
+    const iataCode=String(d.carrierCode||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3);
+    const logoCodes=[...new Set([iataCode,...d.segments.map(s=>String(s.operatingCode||s.marketingCode||iataCode).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3))])]
+      .filter(code=>/^[A-Z0-9]{2,3}$/.test(code));
+    const logoPairs=await Promise.all(logoCodes.map(async code=>[code,await loadJpeg(`/api/airline-logo/${encodeURIComponent(code)}`)]));
+    const logos=new Map(logoPairs);
+    // Every generated PDF must contain a real image logo; no fake/generic brand icon.
+    const absent=logoCodes.filter(code=>!logos.get(code));
+    if(absent.length)throw new Error(`Airline logo unavailable for ${absent.join(', ')}. Add assets/airlines/${absent[0]}.png to GitHub or configure an airline-logo provider on Render.`);
+    const logo=logos.get(iataCode);
     const qr=await loadJpeg('/assets/website-qr.jpg');
+    if(!qr)throw new Error('QR artwork missing. Upload assets/website-qr.jpg along with server.js.');
     // An airline OFFER is not proof of a reservation. This UI has no booking-create endpoint.
     const booked=false; // Set only by a future verified, server-side booking integration.
     const pnr=booked&&d.airlinePnr?d.airlinePnr:'NOT ISSUED';
@@ -80,8 +105,8 @@
     const total=d.liveOffer?Number(d.fareTotal||0):Number(d.fareSample||0)*d.travelers.length;
     const pending='NOT CONFIRMED';
     function top(continuation=false){
-      if(logo)pdf.image(logo,L+8,13,132,37);
-      else{pdf.rect(L+8,13,132,37,ink);pdf.txt(airline,L+16,37,fit(airline,15.5,116,8),white,true)}
+      if(logo)pdf.fittedImage(logo,L+8,13,147,37);
+
       pdf.txt('FLIGHT ITINERARY',L+16,62,7.3,navy,true);
       pdf.right(`Itinerary Ref: ${ref}`,R,23,8.5,dark,true);
       pdf.right(`Airline PNR: ${pnr}`,R,37,8.0,dark,true);
@@ -122,8 +147,10 @@
     for(const [k,ss] of groups){room(18);pdf.txt(direction(k),L+8,y+12,7.5,orange,true);pdf.txt(`Baggage: ${sanitize(ss[0]?.baggage||'Refer to airline rules')}`,L+87,y+12,7.3,muted);y+=17;
       for(let j=0;j<ss.length;j++){
         const s=ss[j];room(29);pdf.line(L,y+28,R,y+28,gray);if(ix++%2)pdf.rect(L,y,R-L,28,'#FAFBFD');
-        pdf.txt(sanitize(s.flightNo||'-'),L+7,y+12,8.6,dark,true);
-        pdf.txt(sanitize(s.operatingAirline||airline),L+7,y+24,6.5,muted);
+        const sectorLogo=logos.get(String(s.operatingCode||s.marketingCode||iataCode).toUpperCase())||logo;
+        if(sectorLogo)pdf.fittedImage(sectorLogo,L+7,y+2,51,10);
+        pdf.txt(sanitize(s.flightNo||'-'),L+7,y+20,7.5,dark,true);
+        pdf.txt(sanitize(s.operatingAirline||airline),L+7,y+27,5.4,muted);
         pdf.txt(sanitize(s.date||'-'),L+86,y+17,fit(s.date||'-',8,86),dark);
         const frm=`${sanitize(s.from?.city||'')} (${sanitize(s.from?.code||'')})`;
         const to=`${sanitize(s.to?.city||'')} (${sanitize(s.to?.code||'')})`;
