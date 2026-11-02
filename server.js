@@ -3,13 +3,16 @@
 const http=require('node:http');
 const fs=require('node:fs/promises');
 const path=require('node:path');
+const crypto=require('node:crypto');
 const {URL}=require('node:url');
 const ROOT=__dirname;
 const PORT=Number(process.env.PORT||3000);
 const TOKEN=(process.env.DUFFEL_ACCESS_TOKEN||'').trim();
 const DUFFEL_API=(process.env.DUFFEL_API_BASE_URL||'https://api.duffel.com').replace(/\/$/,'');
 const requestIds=new Map(), offerIds=new Map(), rate=new Map();
-const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.ico':'image/x-icon','.png':'image/png','.json':'application/json'};
+const logoCache=new Map();
+const AIRHEX_KEY=(process.env.AIRHEX_API_KEY||'').trim();
+const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.ico':'image/x-icon','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.json':'application/json'};
 function respond(res,code,data){res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data));}
 function capped(str,n){return String(str||'').slice(0,n);}
 const iata=x=>typeof x==='string'&&/^[A-Z]{3}$/.test(x.toUpperCase());
@@ -59,6 +62,62 @@ async function listOffers(requestId,after=''){
 }
 async function handler(req,res){
   const u=new URL(req.url,'http://localhost');
+  if(/^\/api\/airline-logo\/[A-Z0-9]{2,3}$/.test(u.pathname) && req.method==='GET'){
+    const code=u.pathname.split('/').pop();
+    // Only vetted image sources, fixed paths, and IATA/ICAO codes are accepted.
+    // Image-provider API keys never reach the browser.
+    const localNames=[`assets/airlines/${code}.png`,`assets/airlines/${code}.jpg`,`assets/airlines/${code}.jpeg`,
+      ...(code==='EK'?['assets/EK.jpg']:[])];
+    for(const local of localNames){
+      try {const buf=await fs.readFile(path.join(ROOT,local));
+        if(buf.length>100&&buf.length<800000){const contentType=/\.png$/i.test(local)?'image/png':'image/jpeg';
+          res.writeHead(200,{'Content-Type':contentType,'Cache-Control':'public, max-age=86400','X-Logo-Source':'local','X-Content-Type-Options':'nosniff'});
+          return res.end(buf);
+        }
+      }catch(e){if(e.code!=='ENOENT')console.warn('Local logo read:',e.message)}
+    }
+    const cached=logoCache.get(code);
+    if(cached && cached.expires>Date.now()){
+      res.writeHead(200,{'Content-Type':cached.type,'Cache-Control':'public, max-age=3600','X-Logo-Source':cached.source,'X-Content-Type-Options':'nosniff'});
+      return res.end(cached.data);
+    }
+    if(!allow(req,res))return;
+    const sources=[];
+    if(AIRHEX_KEY){
+      const signature=crypto.createHash('md5').update(`${code}_350_100_r_${AIRHEX_KEY}`).digest('hex');
+      sources.push({name:'airhex',url:`https://content.airhex.com/content/logos/airlines_${code}_350_100_r.png?md5apikey=${signature}`});
+    }
+    sources.push(
+      // Free public lookup sources. Availability, correctness and licensing vary; cached/local is preferred.
+      {name:'aviasales',url:`https://pics.avs.io/350/100/${code}.png`},
+      {name:'aviasales-mobile',url:`https://ios.aviasales.com/logos/xxhdpi/${code}.png`},
+      {name:'airlines-logo-cdn',url:`https://cdn.jsdelivr.net/gh/spydogenesis/airlines-logo@main/airlines-logo/200x200_v2/${code}.png`},
+      {name:'airlines-logo-raw',url:`https://raw.githubusercontent.com/spydogenesis/airlines-logo/main/airlines-logo/200x200_v2/${code}.png`},
+      {name:'kiwi',url:`https://images.kiwi.com/airlines/128/${code}.png`},
+      {name:'wway',url:`https://img.wway.io/pics/root/${code}@png?exar=1&rs=fit:350:100`}
+    );
+    for(const source of sources){
+      const controller=new AbortController(),tm=setTimeout(()=>controller.abort(),5000);
+      try{
+        const response=await fetch(source.url,{signal:controller.signal,headers:{'User-Agent':'ExploreFlights/1.0 (airline-branding)'},redirect:'follow'});
+        if(!response.ok)continue;
+        const type=(response.headers.get('content-type')||'').split(';')[0].toLowerCase();
+        if(!['image/png','image/jpeg'].includes(type))continue;
+        const data=Buffer.from(await response.arrayBuffer());
+        // Reject unexpected HTML bodies and tiny placeholders.
+        const png=type==='image/png'&&data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+        const jpg=type==='image/jpeg'&&data[0]===255&&data[1]===216;
+        if((!png&&!jpg)||data.length<250||data.length>800000)continue;
+        logoCache.set(code,{data,type,source:source.name,expires:Date.now()+6*60*60*1000});
+        if(logoCache.size>1500){logoCache.delete(logoCache.keys().next().value)}
+        res.writeHead(200,{'Content-Type':type,'Cache-Control':'public, max-age=3600','X-Logo-Source':source.name,'X-Content-Type-Options':'nosniff'});
+        return res.end(data);
+      }catch(e){/* Try another vetted provider. */}
+      finally{clearTimeout(tm)}
+    }
+    // A blank logo is not silently replaced with a fabricated airline emblem.
+    return respond(res,404,{error:`Verified airline logo for ${code} unavailable. Add assets/airlines/${code}.png or configure licensed AIRHEX_API_KEY.`});
+  }
   if(u.pathname==='/api/config'){return respond(res,200,{connected:!!TOKEN,provider:'Duffel',message:TOKEN?'Provider token configured. Search results identify test versus live inventory.':'Live inventory requires a Duffel API token on the server.'})}
   if(u.pathname.startsWith('/api/')){
     if(!allow(req,res))return;
@@ -94,7 +153,7 @@ async function handler(req,res){
   }
   if(req.method!=='GET'&&req.method!=='HEAD')return respond(res,405,{error:'Method not allowed'});
   const name=u.pathname==='/'?'index.html':decodeURIComponent(u.pathname.slice(1));
-  if(!/^(index\.html|app\.js|styles\.css|pdf-export\.js|passport-ocr\.js|favicon\.svg)$/.test(name)){res.writeHead(404);return res.end('Not found')}
+  if(!/^(index\.html|app\.js|styles\.css|pdf-export\.js|passport-ocr\.js|favicon\.svg|assets\/website-qr\.jpg|assets\/airlines\/[A-Z0-9]{2,3}\.(?:png|jpe?g))$/.test(name)){res.writeHead(404);return res.end('Not found')}
   try{const body=await fs.readFile(path.join(ROOT,name));res.writeHead(200,{'Content-Type':mime[path.extname(name)]||'application/octet-stream','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});res.end(req.method==='HEAD'?'':body)}catch{res.writeHead(404);res.end('Not found')}
 }
 const server=http.createServer((req,res)=>{handler(req,res).catch(e=>{console.error(e);if(!res.headersSent)respond(res,500,{error:'Internal server error'})})});
