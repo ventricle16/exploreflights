@@ -1,107 +1,186 @@
-/* Explore Flights A4 PDF generator. Live offer data may appear, but a flight offer is NOT a booked ticket. */
+/* Explore Flights: compact airline-style A4 itinerary, matching the layout of the supplied ticket.
+   Only genuine provider-issued PNR / confirmation fields may be shown as confirmed. */
 (() => {
   'use strict';
-  const W=595.28,H=841.89,M=36,R=W-M;
-  const navy='#09264B',deep='#122F55',blue='#2563EB',ink='#173451',sub='#6B7D93',border='#DFE7F0',pale='#F3F7FD',sky='#EDF4FF',white='#FFFFFF',orange='#9D5719',peach='#FFF6EB';
-  const carrierColors={'QR':'#65143D','EK':'#C92335','TK':'#C42538','BG':'#CC2B36','SQ':'#C99B39','BA':'#17457F'};
-  const rgb=x=>[1,3,5].map(i=>(parseInt(x.slice(i,i+2),16)/255).toFixed(4)).join(' ');
-  const simple=x=>String(x??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7e]/g,c=>({'–':'-','—':'-','→':'>','·':' | ','’':"'",'৳':'BDT '}[c]||' '));
-  const esc=x=>simple(x).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
-  const textWidth=(s,n)=>[...simple(s)].reduce((w,c)=>w+n*(c===' '?0.29:/[WM@]/.test(c)?.82:/[il.:,;|!]/.test(c)?.24:/[A-Z0-9]/.test(c)?.65:.52),0);
-  const sized=(s,n,max,min=7.5)=>{while(n>min&&textWidth(s,n)>max)n-=.35;return n;};
-  class Doc{
-    constructor(){this.pages=[];this.newPage();}
-    newPage(){this.commands=[];this.pages.push(this.commands);}
-    write(v){this.commands.push(v);}
-    rect(x,y,w,h,fill,stroke){this.write(`${rgb(fill)} rg ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);if(stroke)this.write(`${rgb(stroke)} RG .7 w ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S`);}
-    line(x,y,x2,y2,color=border,width=.8){this.write(`${rgb(color)} RG ${width} w ${x.toFixed(2)} ${(H-y).toFixed(2)} m ${x2.toFixed(2)} ${(H-y2).toFixed(2)} l S`);}
-    text(s,x,y,size=10,color=ink,bold=false){this.write(`BT /F${bold?2:1} ${size.toFixed(2)} Tf ${rgb(color)} rg 1 0 0 1 ${x.toFixed(2)} ${(H-y).toFixed(2)} Tm (${esc(s)}) Tj ET`);}
-    small(s,x,y,color=sub){this.text(s,x,y,7.5,color,true);}
-    wrap(s,x,y,width,sz=8.2,leading=11.5,color=ink){let line='',rows=[];for(const word of simple(s).split(/\s+/)){const trial=(line?line+' ':'')+word;if(line&&textWidth(trial,sz)>width){rows.push(line);line=word;}else line=trial;}if(line)rows.push(line);rows.forEach((v,i)=>this.text(v,x,y+i*leading,sz,color));return y+rows.length*leading;}
-    blob(){const objects=[null,'<< /Type /Catalog /Pages 2 0 R >>',null,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];const kids=[];
-      for(const page of this.pages){const id=objects.length;kids.push(`${id} 0 R`);const stream=page.join('\n')+'\n';objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${id+1} 0 R >>`);objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}endstream`);}
-      objects[2]=`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;
-      let output='%PDF-1.4\n%EXPLORE\n';const offsets=[0];for(let i=1;i<objects.length;i++){offsets[i]=output.length;output+=`${i} 0 obj\n${objects[i]}\nendobj\n`;}const xref=output.length;output+=`xref\n0 ${objects.length}\n0000000000 65535 f \n`;for(let i=1;i<objects.length;i++)output+=`${String(offsets[i]).padStart(10,'0')} 00000 n \n`;output+=`trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;return new Blob([new TextEncoder().encode(output)],{type:'application/pdf'});}
+  const W=595.28, H=841.89, L=14, R=581, navy='#1B395C', dark='#1B2735', muted='#626D7B';
+  const light='#F2F5F8', gray='#D8DEE6', cream='#FFF8E7', bluePale='#E6F2F9', white='#FFFFFF', orange='#93611B';
+  const palette={EK:'#D71920',QR:'#70183F',TK:'#D62828',BG:'#C52A36',SQ:'#A17F22',BA:'#154A81',EY:'#AF914E',MH:'#C43B37',AI:'#C42D38',WY:'#6F375A',CX:'#08665F',SV:'#145FA8',KU:'#145E8D',GF:'#9B8C58'};
+  const sanitize=s=>String(s??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[\u2014\u2013]/g,'-').replace(/[\u2019]/g,"'").replace(/[^\x20-\x7e]/g,' ');
+  const esc=s=>sanitize(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+  const rgb=s=>[1,3,5].map(i=>(parseInt(s.slice(i,i+2),16)/255).toFixed(4)).join(' ');
+  const width=(s,z=9)=>[...sanitize(s)].reduce((a,c)=>a+z*(c===' '?0.29:/[MW@]/.test(c)?.83:/[il.,:;|!]/.test(c)?.25:/[A-Z0-9]/.test(c)?.64:.52),0);
+  const fit=(s,z,max,min=5.8)=>{while(z>min&&width(s,z)>max)z-=.3;return Math.max(min,z)};
+  function fmtDate(s){if(!s)return '-';const d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(s)?s+'T12:00:00Z':s);return Number.isFinite(+d)?new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'}).format(d):sanitize(s)}
+  function fmtMoney(n,c='BDT'){return `${sanitize(c)} ${Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`}
+  class PDF{
+    constructor(){this.pages=[];this.images=[];this.newPage()}
+    newPage(){this.cmd=[];this.pages.push(this.cmd)}
+    emit(s){this.cmd.push(s)}
+    rect(x,y,w,h,color,stroke){this.emit(`${rgb(color)} rg ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`);if(stroke){this.emit(`${rgb(stroke)} RG .5 w ${x.toFixed(2)} ${(H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S`)}}
+    line(x,y,x2,y2,color=gray,thick=.55){this.emit(`${rgb(color)} RG ${thick} w ${x.toFixed(2)} ${(H-y).toFixed(2)} m ${x2.toFixed(2)} ${(H-y2).toFixed(2)} l S`)}
+    txt(v,x,y,size=8,color=dark,bold=false){this.emit(`BT /F${bold?2:1} ${size.toFixed(2)} Tf ${rgb(color)} rg 1 0 0 1 ${x.toFixed(2)} ${(H-y).toFixed(2)} Tm (${esc(v)}) Tj ET`)}
+    right(v,x,y,size=8,color=dark,bold=false){this.txt(v,x-width(v,size),y,size,color,bold)}
+    wrapped(v,x,y,max,z=7.4,lh=10,color=dark,maxLines=4){let line='',out=[];for(const word of sanitize(v).split(/\s+/)){const t=line?line+' '+word:word;if(line&&width(t,z)>max){out.push(line);line=word;}else line=t}if(line)out.push(line);out.slice(0,maxLines).forEach((s,i)=>this.txt(s,x,y+i*lh,z,color));return Math.min(out.length,maxLines)*lh}
+    image(jpeg,x,y,w,h){
+      const n=this.images.push(jpeg);
+      this.emit(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${(H-y-h).toFixed(2)} cm /Im${n} Do Q`);
+    }
+    file(){
+      const enc=new TextEncoder(), parts=[];let totalBytes=0;
+      const append=v=>{const bytes=typeof v==='string'?enc.encode(v):v;parts.push(bytes);totalBytes+=bytes.length};
+      const pageCount=this.pages.length, imageStart=5+2*pageCount;
+      const numObjects=4+2*pageCount+this.images.length;
+      const offsets=new Array(numObjects+1).fill(0);
+      const object=(id,contents)=>{offsets[id]=totalBytes;append(`${id} 0 obj\n`);append(contents);append('\nendobj\n')};
+      append('%PDF-1.4\n%ExploreFlights\n');
+      object(1,'<< /Type /Catalog /Pages 2 0 R >>');
+      object(2,`<< /Type /Pages /Kids [${this.pages.map((_,i)=>`${5+i*2} 0 R`).join(' ')}] /Count ${pageCount} >>`);
+      object(3,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+      object(4,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+      const xobjects=this.images.map((_,i)=>`/Im${i+1} ${imageStart+i} 0 R`).join(' ');
+      for(let i=0;i<this.pages.length;i++){
+        const id=5+i*2,stream=enc.encode(this.pages[i].join('\n')+'\n');
+        object(id,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << ${xobjects} >> >> /Contents ${id+1} 0 R >>`);
+        offsets[id+1]=totalBytes;append(`${id+1} 0 obj\n<< /Length ${stream.length} >>\nstream\n`);append(stream);append('endstream\nendobj\n');
+      }
+      for(let i=0;i<this.images.length;i++){
+        const id=imageStart+i,img=this.images[i];offsets[id]=totalBytes;
+        append(`${id} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.bytes.length} >>\nstream\n`);
+        append(img.bytes);append('\nendstream\nendobj\n');
+      }
+      const xref=totalBytes;append(`xref\n0 ${numObjects+1}\n0000000000 65535 f \n`);
+      for(let i=1;i<=numObjects;i++)append(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`);
+      append(`trailer\n<< /Size ${numObjects+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+      return new Blob(parts,{type:'application/pdf'});
+    }
   }
-  function generate(data){
-    if(!data?.segments?.length||!data?.travelers?.length)throw Error('Please complete flight search and passenger details first.');
-    const doc=new Doc();let y=0,page=1;
-    function header(continued=false){
-      doc.rect(0,0,W,87,navy);doc.rect(0,0,W,5,blue);
-      doc.rect(M,25,34,34,blue);doc.text('E',M+11,49,21,white,true);
-      doc.text('explore',M+43,39,18,white,true);doc.text('flights',M+115,39,18,'#91C1FF',true);
-      doc.text('TRAVEL DOCUMENT / FLIGHT ITINERARY',M+43,55,7.1,'#C7DEFC',true);
-      doc.rect(R-148,26,148,26,'#294B77');doc.text(data.liveOffer?'OFFER  |  NOT BOOKED':'DEMO  |  NOT BOOKED',R-138,42.5,8.5,white,true);
-      y=continued?113:107;
-      if(continued){doc.text('FLIGHT ITINERARY (CONTINUED)',M,y,10,blue,true);y+=19;}
-    }
-    function footer(){doc.line(M,H-47,R,H-47,border);doc.text(data.liveOffer?'EXPLORE FLIGHTS  /  AIRLINE OFFER ONLY  /  NOT A CONFIRMED RESERVATION':'EXPLORE FLIGHTS  /  EXAMPLE ONLY  /  NOT A TICKET OR CONFIRMED RESERVATION',M,H-31,7,sub,true);doc.text(`PAGE ${page} / {TOTAL}`,R-74,H-31,7,sub,true);}
-    function need(h){if(y+h>H-75){footer();doc.newPage();page++;header(true);}}
-    header();
-    doc.text('FLIGHT ITINERARY',M,y,16,ink,true);doc.text(`Generated ${simple(data.generated)}`,R-147,y,8.2,sub);y+=19;
-    doc.rect(M,y,R-M,25,peach,'#F2DDC2');doc.text(data.liveOffer?'SUPPLIER OFFER: NO BOOKING, PNR, PAYMENT OR TICKET HAS BEEN ISSUED':'SAMPLE DOCUMENT: NO BOOKING, PNR, PAYMENT OR TICKET HAS BEEN ISSUED',M+10,y+16.5,8,orange,true);y+=41;
-    doc.text('BOOKING INFORMATION',M,y,10.4,ink,true);y+=12;
-    doc.rect(M,y,R-M,97,white,border);
-    doc.line(M,y+49,R,y+49);doc.line(M+261,y,M+261,y+97);
-    doc.small('DOCUMENT REFERENCE (DEMO)',M+12,y+16);doc.text(data.bookingReference,M+12,y+34,15,ink,true);
-    doc.small('SAMPLE 6-CHAR CODE (NOT PNR)',M+275,y+16);doc.text(data.demoCode,M+275,y+34,15,blue,true);
-    doc.small('AIRLINE PNR / RECORD LOCATOR',M+12,y+66);doc.text('NOT ISSUED',M+12,y+85,12,orange,true);
-    doc.small('E-TICKET NUMBER',M+275,y+66);doc.text('NOT ISSUED',M+275,y+85,12,orange,true);
-    y+=118;
-    const first=data.segments[0],last=data.segments[data.segments.length-1];
-    const end=data.trip==='Round trip'?data.legs[0].to:last.to.code;
-    doc.text(first.from.code,M+3,y+20,27,navy,true);doc.text('------------------>',M+141,y+16,13,blue,true);doc.text(end,R-99,y+20,27,navy,true);
-    doc.text(simple(first.from.city),M+3,y+36,9,sub);doc.text(simple(data.trip==='Round trip'?data.segments.find(x=>x.to.code===data.legs[0].to)?.to.city||last.to.city:last.to.city),R-120,y+36,9,sub);
-    y+=53;
-    doc.rect(M,y,R-M,43,sky);
-    const facts=[['TRIP TYPE',data.trip],['TRAVELERS',String(data.travelers.length)],['CLASS',data.cabin],['STATUS','UNCONFIRMED']];
-    facts.forEach(([k,v],i)=>{let x=M+12+i*127;doc.small(k,x,y+15);doc.text(v,x,y+31,sized(v,10.3,110),ink,true);});
-    y+=66;
-    doc.text('FLIGHT SEGMENTS',M,y,11,ink,true);doc.text(data.liveOffer?(data.providerLive?'SUPPLIER SCHEDULE - UNBOOKED':'PROVIDER TEST DATA - UNBOOKED'):'EXAMPLE AIRLINE DETAILS - NOT LIVE INVENTORY',R-235,y,7.4,orange,true);y+=13;
-    const sectors=data.segments;
-    for(let i=0;i<sectors.length;i++){
-      const s=sectors[i];const h=124;need(h+11);
-      doc.rect(M,y,R-M,h,white,border);doc.rect(M,y,4,h,blue);
-      doc.rect(M+13,y+10,38,28,carrierColors[data.carrierCode]||blue);doc.text(data.carrierCode,M+19,y+29,12,white,true);
-      doc.text(s.operatingAirline||data.carrier,M+61,y+20,sized(s.operatingAirline||data.carrier,10.5,300),ink,true);doc.text(`${s.flightNo}  |  ${s.aircraft}`,M+61,y+34,8,sub);
-      doc.rect(R-129,y+12,117,19,peach);doc.text(data.liveOffer?'OFFER / NO BOOKING':'SAMPLE / NO BOOKING',R-123,y+25.2,7.2,orange,true);
-      doc.line(M+14,y+44,R-14,y+44);
-      doc.text(s.departureTime,M+19,y+70,20,ink,true);doc.text(s.arrivalTime,R-114,y+70,20,ink,true);
-      doc.text(`${s.from.code}  ${simple(s.from.city).slice(0,21)}`,M+19,y+84,8,blue,true);
-      doc.text(`${s.to.code}  ${simple(s.to.city).slice(0,19)}`,R-114,y+84,sized(`${s.to.code} ${simple(s.to.city)}`,8,107),blue,true);
-      doc.text('--------->',M+220,y+69,11,blue,true);
-      doc.text('local times',M+220,y+82,7.2,sub);
-      doc.text(`${s.date}  |  T: ${s.terminalFrom&&s.terminalFrom!=='Check with airline'?s.terminalFrom:'verify'}`,M+19,y+98,7.6,sub);
-      doc.text(`${s.arrivalDate}  |  T: ${s.terminalTo&&s.terminalTo!=='Check with airline'?s.terminalTo:'verify'}`,R-174,y+98,7.6,sub);
-      doc.rect(M+4,y+105,R-M-8,18,pale);doc.text(`FLIGHT ${s.flightNo}     CABIN ${data.cabin}     BAGGAGE ${s.baggage}     ${data.liveOffer?'AIRCRAFT':'EXAMPLE AIRCRAFT'} ${s.aircraft}`,M+13,y+117,7.1,sub,true);
-      y+=h+11;
-    }
-    need(98);y+=7;
-    doc.text('PASSENGER DETAILS',M,y,10.5,ink,true);y+=13;
-    doc.rect(M,y,R-M,24,sky);doc.small('PASSENGER NAME',M+10,y+16);doc.small('TYPE',M+250,y+16);doc.small('TICKET NO.',M+344,y+16);y+=24;
-    for(let i=0;i<data.travelers.length;i++){
-      const t=data.travelers[i];need(32);doc.rect(M,y,R-M,30,i%2?pale:white,border);
-      doc.text(simple(t.name).slice(0,43),M+10,y+19,sized(simple(t.name),9.4,225),ink,true);
-      doc.text(t.type,M+250,y+19,8.8,ink);doc.text('NOT ISSUED',M+344,y+19,8.1,orange,true);y+=30;
-    }
-    y+=16;need(63);doc.rect(M,y,R-M,62,sky);doc.small(data.liveOffer?'SUPPLIER TOTAL FARE (SUBJECT TO RECHECK)':'ILLUSTRATIVE TRAVEL FARE (NOT A LIVE QUOTE)',M+12,y+17);
-    doc.text(data.liveOffer?`${data.currency} ${Number(data.fareTotal).toLocaleString('en-US',{minimumFractionDigits:2})}`:`BDT ${(Number(data.fareSample)*data.travelers.length).toLocaleString('en-US')}`,M+12,y+38,16,navy,true);
-    doc.small('PAYMENT STATUS',M+310,y+17);doc.text('NOT PAID',M+310,y+38,12,orange,true);y+=78;
-    // Avoid an otherwise empty second page for a short one-leg itinerary.
-    const remaining=H-74-y;
-    if(remaining>=31&&remaining<95){
-      doc.rect(M,y,R-M,28,peach,'#F1D7B6');
-      doc.text(data.liveOffer?'IMPORTANT: OFFER IS NOT A CONFIRMED BOOKING':'IMPORTANT: DEMONSTRATION ONLY',M+12,y+11.5,8.1,orange,true);
-      doc.text(data.liveOffer?'An airline offer is not a reservation. No airline PNR or ticket exists. Price and schedule can change.':'Sample only: not a reservation or ticket. No valid airline PNR or e-ticket has been issued.',M+12,y+22,7.0,ink);
-      y+=31;
-    }else{
-      need(95);doc.rect(M,y,R-M,88,peach,'#F1D7B6');doc.text(data.liveOffer?'IMPORTANT: NOT A CONFIRMED BOOKING':'IMPORTANT: DEMONSTRATION ONLY',M+13,y+20,10,orange,true);
-      doc.wrap(data.liveOffer?'This itinerary displays airline offer information returned by a connected flight provider. It is NOT a reservation or ticket. The 6-character Explore Flights demo reference is NOT an airline PNR. Schedules, fares, availability, baggage and terminals can change. Confirm directly with the airline or authorized booking provider before travel.':'This document is a sample flight itinerary, not a reservation or ticket. The six-character demo reference is not an airline PNR. Example flight numbers, aircraft, baggage, terminals, fares and times have not been verified. Only an airline or authorized booking provider can issue a genuine, verifiable PNR.',M+13,y+36,R-M-27,8.6,12,ink);y+=100;
-    }
-    footer();
-    for(const pageCommands of doc.pages)for(let i=0;i<pageCommands.length;i++)pageCommands[i]=pageCommands[i].replace(/\{TOTAL\}/g,String(doc.pages.length));
-    return doc.blob();
+  async function loadJpeg(url){
+    // Cross-origin logo requests are made via the Explore Flights server; no traveler data is sent.
+    const image=new Image();image.decoding='async';image.src=url;
+    try{await image.decode()}catch{return null}
+    const canvas=document.createElement('canvas');canvas.width=Math.max(1,image.naturalWidth);canvas.height=Math.max(1,image.naturalHeight);
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);
+    try{ctx.drawImage(image,0,0);const data=canvas.toDataURL('image/jpeg',.94).split(',')[1];
+      const raw=atob(data),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+      return {width:canvas.width,height:canvas.height,bytes}
+    }catch{return null}
   }
-  function download(data){const blob=generate(data);const filename=`Explore_Flights_Itinerary_${data.demoCode||'DEMO'}.pdf`.replace(/[^A-Za-z0-9_.-]/g,'_');const url=URL.createObjectURL(blob);const a=document.createElement('a');a.style.display='none';a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);return filename;}
+  async function generate(d){
+    if(!d?.segments?.length||!d?.travelers?.length)throw Error('Complete your flight selection and passenger details first.');
+    const pdf=new PDF();let y=0,page=1;
+    const iataCode=String(d.carrierCode||'').toUpperCase().slice(0,2);
+    const logo=await loadJpeg(`/api/airline-logo/${encodeURIComponent(iataCode)}`);
+    const qr=await loadJpeg('/assets/website-qr.jpg');
+    // An airline OFFER is not proof of a reservation. This UI has no booking-create endpoint.
+    const booked=false; // Set only by a future verified, server-side booking integration.
+    const pnr=booked&&d.airlinePnr?d.airlinePnr:'NOT ISSUED';
+    const code=(d.carrierCode||'EF').toUpperCase().slice(0,3),airline=sanitize(d.carrier||'Explore Flights');
+    const ink=palette[code]||navy,ref=sanitize(d.bookingReference||'EF-ITINERARY');
+    const currency=d.liveOffer&&d.currency?d.currency:'BDT';
+    const total=d.liveOffer?Number(d.fareTotal||0):Number(d.fareSample||0)*d.travelers.length;
+    const pending='NOT CONFIRMED';
+    function top(continuation=false){
+      if(logo)pdf.image(logo,L+8,13,132,37);
+      else{pdf.rect(L+8,13,132,37,ink);pdf.txt(airline,L+16,37,fit(airline,15.5,116,8),white,true)}
+      pdf.txt('FLIGHT ITINERARY',L+16,62,7.3,navy,true);
+      pdf.right(`Itinerary Ref: ${ref}`,R,23,8.5,dark,true);
+      pdf.right(`Airline PNR: ${pnr}`,R,37,8.0,dark,true);
+      pdf.right(`Status: ${pending}`,R,51,8.0,dark,true);
+      y=continuation?82:81;
+    }
+    function foot(){pdf.line(L,799,R,799,gray);pdf.txt(`Explore Flights  |  Itinerary ref ${ref}  |  No airline booking issued`,L+2,813,7,muted);pdf.right(`PAGE ${page} / {TOTAL}`,R,813,7,muted)}
+    function newPage(){foot();pdf.newPage();page++;top(true)}
+    function room(h){if(y+h>792)newPage()}
+    function bar(title){room(24);pdf.rect(L,y,R-L,18,navy);pdf.txt(title.toUpperCase(),L+8,y+12,9.1,white,true);y+=18}
+    top();
+    bar('Passenger information');
+    // The reference table uses six columns and light zebra rows.
+    const cols=[L+8,L+29,L+190,L+279,L+368,L+467];
+    pdf.rect(L,y,R-L,18,light);['SL','FULL NAME','DATE OF BIRTH','PASSPORT NO.','PASSPORT EXPIRY','NATIONALITY','PAX TYPE'].forEach((v,i)=>{
+      const x=[L+6,L+30,L+186,L+262,L+356,L+461,R-53][i];
+      const size=[7.1,7.1,7.1,7.1,6.7,5.8,5.8][i];
+      pdf.txt(v,x,y+12,size,dark,true)
+    });y+=18;
+    d.travelers.forEach((p,i)=>{
+      room(26);const row=26;pdf.rect(L,y,R-L,row,i%2?light:white);pdf.line(L,y+row,R,y+row,gray);
+      pdf.txt(i+1,L+8,y+17,8,muted);
+      const nm=sanitize(p.name||'PASSENGER');const multiline=width(nm,8)>149;
+      if(multiline){const parts=nm.split(' ');let a='',b='';for(const part of parts){if(!b&&width(a+' '+part,8)<147)a+=(a?' ':'')+part;else b+=(b?' ':'')+part}pdf.txt(a,L+31,y+11,fit(a,8,149),dark,true);pdf.txt(b,L+31,y+20,fit(b,7.5,149),dark,true)}else pdf.txt(nm,L+31,y+17,fit(nm,8.3,149),dark,true);
+      pdf.txt(p.dob?fmtDate(p.dob):'-',L+186,y+17,7.8,dark);
+      pdf.txt(sanitize(p.passport||'-'),L+263,y+17,fit(p.passport||'-',8,84),dark,true);
+      pdf.txt(p.passportExpiry?fmtDate(p.passportExpiry):'-',L+356,y+17,7.7,dark);
+      pdf.txt(sanitize(p.nationality||'-'),L+460,y+17,fit(p.nationality||'-',7.5,79),dark);
+      pdf.txt(sanitize(p.type||'Adult'),R-59,y+17,7.8,dark);
+      y+=row;
+    });
+    y+=9;bar('Flight itinerary');
+    function flightTableHead(){pdf.rect(L,y,R-L,18,light);const cx=[L+8,L+88,L+175,L+287,L+370,L+412,L+471,L+530];const th=['FLIGHT','DATE','FROM','TO','DEP.','ARR.','DURATION','CLASS'];th.forEach((t,i)=>pdf.txt(t,cx[i],y+12,fit(t,7.2,[72,80,105,76,42,42,54,39][i]),dark,true));pdf.line(L,y+18,R,y+18,navy,1);y+=18}
+    flightTableHead();
+    const groups=new Map();d.segments.forEach((s,i)=>{const k=String(s.routeIndex||1);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(s)});
+    const direction=k=>{const n=Number(k);return d.trip==='Round trip'?(n===1?'OUTBOUND':'RETURN'):(d.trip==='Multi-city'?`JOURNEY ${n}`:'OUTBOUND')};
+    let ix=0;
+    for(const [k,ss] of groups){room(18);pdf.txt(direction(k),L+8,y+12,7.5,orange,true);pdf.txt(`Baggage: ${sanitize(ss[0]?.baggage||'Refer to airline rules')}`,L+87,y+12,7.3,muted);y+=17;
+      for(let j=0;j<ss.length;j++){
+        const s=ss[j];room(29);pdf.line(L,y+28,R,y+28,gray);if(ix++%2)pdf.rect(L,y,R-L,28,'#FAFBFD');
+        pdf.txt(sanitize(s.flightNo||'-'),L+7,y+12,8.6,dark,true);
+        pdf.txt(sanitize(s.operatingAirline||airline),L+7,y+24,6.5,muted);
+        pdf.txt(sanitize(s.date||'-'),L+86,y+17,fit(s.date||'-',8,86),dark);
+        const frm=`${sanitize(s.from?.city||'')} (${sanitize(s.from?.code||'')})`;
+        const to=`${sanitize(s.to?.city||'')} (${sanitize(s.to?.code||'')})`;
+        pdf.txt(frm,L+174,y+17,fit(frm,8.6,109),dark,true);
+        pdf.txt(to,L+285,y+17,fit(to,8.6,79),dark,true);
+        pdf.txt(sanitize(s.departureTime||'-'),L+369,y+17,8.5,dark,true);
+        pdf.txt(sanitize(s.arrivalTime||'-'),L+411,y+17,8.5,dark,true);
+        pdf.txt(sanitize(s.duration||'-'),L+469,y+17,fit(s.duration||'-',8.1,53),dark);
+        pdf.txt(sanitize(s.cabin||d.cabin||'Economy'),L+529,y+17,fit(s.cabin||d.cabin||'Economy',7.7,38),dark);
+        y+=28;
+        if(j<ss.length-1){room(16);pdf.rect(L,y,R-L,15,cream);const place=s.to?.city||'Connecting airport';pdf.txt(`    Connection at ${sanitize(place)} (${sanitize(s.to?.code||'')}) - change planes`,L+185,y+10.5,7.3,orange);y+=15;}
+      }
+    }
+    y+=5;room(32);
+    pdf.line(L,y,R,y,gray);y+=13;
+    const outbound=d.segments.filter(x=>String(x.routeIndex||1)==='1').map(x=>x.flightNo).join(' - ');
+    const ret=d.segments.filter(x=>String(x.routeIndex||1)==='2').map(x=>x.flightNo).join(' - ');
+    pdf.txt(`Flights: Outbound ${sanitize(outbound)}${ret?'  |  Return '+sanitize(ret):''}`,L+7,y,fit(`Flights: Outbound ${outbound}${ret?' | Return '+ret:''}`,8.2,558),dark);
+    y+=13;pdf.txt(`All times local to each airport. Schedules and aircraft are subject to airline changes.`,L+7,y,7.5,muted);
+    y+=14;bar('Fare summary');
+    pdf.rect(L,y,R-L,18,light);pdf.txt('DESCRIPTION',L+8,y+12,7.5,dark,true);pdf.right(`AMOUNT (${currency})`,R-9,y+12,7.5,dark,true);y+=18;
+    const amount=fmtMoney(total,currency).replace(`${currency} `,'');
+    const fareRows=[
+      ['Airfare (estimated / offered)',amount],
+      ['Taxes, fees and surcharges','Included where quoted'],
+      ['Convenience fee','Not charged']
+    ];
+    fareRows.forEach(([label,value],i)=>{room(19);pdf.rect(L,y,R-L,19,i%2?white:light);pdf.line(L,y+19,R,y+19,gray);pdf.txt(label,L+8,y+13,8.1,dark);pdf.right(value,R-9,y+13,7.8,dark);y+=19});
+    room(24);pdf.rect(L,y,R-L,24,bluePale);pdf.txt(d.liveOffer?'Total offered fare (not charged)':'Estimated total (not charged)',L+8,y+16,9.4,dark,true);pdf.right(fmtMoney(total,currency),R-9,y+16,10.2,dark,true);y+=32;
+    bar('Important information');
+    room(110);
+    const notes=[
+      'Itinerary information is not proof of an airline reservation.',
+      'No airline PNR or e-ticket has been issued.',
+      'Check departure/arrival times with the operating airline.',
+      'Arrive at least 3 hours before international departures.',
+      'Passport and visa requirements vary by destination.',
+      'Baggage rules are determined by the operating airline.',
+      'Price and availability may change prior to booking.',
+      'For actual reservations, obtain a confirmed airline record.'
+    ];
+    let leftY=y+11,rightY=y+11;
+    notes.slice(0,4).forEach(v=>{pdf.txt('*',L+10,leftY,8,navy);leftY+=pdf.wrapped(v,L+20,leftY,225,7.4,10,dark,3)+4;});
+    notes.slice(4,8).forEach(v=>{pdf.txt('*',L+245,rightY,8,navy);rightY+=pdf.wrapped(v,L+255,rightY,205,7.4,10,dark,3)+4;});
+    // Public website URL only; this code does not validate an airline reservation.
+    const qrX=R-93,qrY=y+8,dim=78;
+    pdf.rect(qrX-5,qrY-5,dim+10,dim+10,white,gray);
+    if(qr)pdf.image(qr,qrX,qrY,dim,dim);
+    pdf.txt('VISIT EXPLORE FLIGHTS',qrX-7,qrY+dim+18,6.7,muted,true);
+    y=Math.max(leftY,rightY,qrY+dim+23)+10;
+    if(y>792){ // for long documents, the important-information block may end on a new page.
+      newPage();
+    }
+    foot();
+    for(const c of pdf.pages)for(let i=0;i<c.length;i++)c[i]=c[i].replace(/\{TOTAL\}/g,String(pdf.pages.length));
+    return pdf.file();
+  }
+  async function download(data){const blob=await generate(data);const filename=`Explore_Flights_Itinerary_${sanitize(data.bookingReference||'')||'Itinerary'}.pdf`.replace(/[^\w.\-]/g,'_');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);return filename}
   window.ExploreFlightsPDF={generate,download};
 })();
