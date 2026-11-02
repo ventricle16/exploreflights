@@ -94,7 +94,7 @@ async function handler(req,res){
   }
   if(req.method!=='GET'&&req.method!=='HEAD')return respond(res,405,{error:'Method not allowed'});
   const name=u.pathname==='/'?'index.html':decodeURIComponent(u.pathname.slice(1));
-  if(!/^(index\.html|app\.js|styles\.css|pdf-export\.js|favicon\.svg)$/.test(name)){res.writeHead(404);return res.end('Not found')}
+  if(!/^(index\.html|app\.js|styles\.css|pdf-export\.js|passport-ocr\.js|favicon\.svg)$/.test(name)){res.writeHead(404);return res.end('Not found')}
   try{const body=await fs.readFile(path.join(ROOT,name));res.writeHead(200,{'Content-Type':mime[path.extname(name)]||'application/octet-stream','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});res.end(req.method==='HEAD'?'':body)}catch{res.writeHead(404);res.end('Not found')}
 }
 const server=http.createServer((req,res)=>{handler(req,res).catch(e=>{console.error(e);if(!res.headersSent)respond(res,500,{error:'Internal server error'})})});

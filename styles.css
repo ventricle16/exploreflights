@@ -169,3 +169,26 @@ body{background:#fcfdff}h1,h2,h3,h4{letter-spacing:-.045em}.btn{border-radius:12
 .load-more-panel>p{width:100%;font-size:13px;color:#597b9e;margin:0}
 .load-more-panel>.btn{font-size:12px}
 @media(max-width:560px){.live-state{padding:38px 17px}.live-fare-tag{font-size:8px}.live-segment-info{padding-left:5px;padding-right:5px}.live-segment-info>span{font-size:9px}.load-more-panel>.btn{width:100%}.result-controls label{min-width:0}.results-list-title{flex-wrap:wrap}}
+
+/* Passport auto-fill — visible only on person details page; never uploads passport files. */
+.passport-scan-panel{display:flex;gap:13px;margin:-3px 0 24px;padding:17px;border:1px solid #c8def5;background:linear-gradient(135deg,#f1f8ff,#f8fcff);border-radius:15px}
+.passport-scan-badge{display:grid;place-items:center;flex:0 0 41px;height:41px;color:#1d63c4;background:#e0edff;border-radius:12px}
+.passport-scan-content{min-width:0;flex:1}
+.passport-scan-content>strong{display:block;color:#193b64;font-size:14px;font-weight:800;margin:0 0 4px}
+.passport-scan-content>p{font-size:12px;color:#66809c;line-height:1.55;margin:0 0 13px}
+.passport-scan-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.passport-scan-actions>span{font-size:11px;color:#72869f}
+.passport-upload-button{position:relative;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#195dc1;color:white;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:800;min-height:40px;transition:background .2s}
+.passport-upload-button:hover{background:#0b469d}
+.passport-upload-button:focus-within{box-shadow:0 0 0 3px #aed2ff}
+.passport-upload-button.is-busy{opacity:.55;cursor:progress}
+.passport-upload-button input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.passport-upload-button input:disabled{cursor:progress}
+.passport-privacy{display:flex;align-items:flex-start;gap:5px;font-size:10.5px;color:#6f829a;line-height:1.5;margin-top:12px}
+.passport-privacy svg{flex:0 0 13px;margin-top:1px}
+.passport-scan-status{display:flex;align-items:flex-start;gap:8px;margin:12px 0 0;border-radius:9px;padding:10px 11px;font-size:11px;line-height:1.5;color:#22568b;background:#e2efff;border:1px solid #cadef7}
+.passport-scan-status svg{flex:0 0 16px;margin-top:1px}
+.passport-scan-status.scan-success{color:#106b51;background:#e6f8ed;border-color:#bfe7d4}
+.passport-scan-status.scan-error{color:#9b3b27;background:#fff2ee;border-color:#f7ccc1}
+.passport-spinner{flex:0 0 14px;height:14px;border:2px solid #bcd4fa;border-top-color:#2063b9;border-radius:50%;animation:ef-spin .8s linear infinite}
+@media(max-width:560px){.passport-scan-panel{padding:13px;gap:10px}.passport-scan-badge{flex-basis:34px;height:34px}.passport-upload-button{width:100%}.passport-scan-actions>span{width:100%;font-size:10px}}
