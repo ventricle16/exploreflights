@@ -1339,31 +1339,31 @@ QRCode.createBytes = function(buffer, rsBlocks) {
 module.exports = QRCode;
 
 },
-}; const cache={};function require(s){const name=s.replace(/^\.\//, "");if(cache[name])return cache[name].exports;const module={exports:{}};if(!factories[name])throw Error("Unknown QR module: "+name);cache[name]=module;factories[name](require,module,module.exports);return module.exports;}const QRCode=require("index");const ec=require("QRErrorCorrectLevel");return function(input){const qr=new QRCode(-1,ec.M);qr.addData(input);qr.make();return qr;};})();
+}; const cache={};function require(s){const name=s.replace(/^\.\//, "");if(cache[name])return cache[name].exports;const module={exports:{}};if(!factories[name])throw Error("Unknown QR module: "+name);cache[name]=module;factories[name](require,module,module.exports);return module.exports;}const QRCode=require("index");const ec=require("QRErrorCorrectLevel");return function(input){const qr=new QRCode(-1,ec.L);qr.addData(input);qr.make();return qr;};})();
 
   // The QR payload is encoded entirely inside the browser; no passport details
   // are sent to an external QR-image API or to the Explore Flights server.
   // NOTE: This QR contains personal data in plain text. Anyone with the PDF
   // can scan it. Only create/send PDFs to the intended traveler or agent.
   function qrPayload(d,flightDesignator){
-    const lines=['EXPLORE FLIGHTS - ITINERARY DETAILS'];
-    lines.push(`Reference: ${sanitize(d.bookingReference||'')}`);
-    lines.push('Passengers:');
+    // Compact plain-text QR: more whitespace per module makes phone scans reliable.
+    // It is NOT a reservation-verification QR. Passport data is readable by anyone
+    // who possesses the PDF, so distribute this document only with consent.
+    const rows=['EXPLORE FLIGHTS',`REF: ${sanitize(d.bookingReference||'')}`];
     d.travelers.forEach((p,i)=>{
       const title=p.gender==='Male'?'Mr ':p.gender==='Female'?'Ms ':'';
-      const full=sanitize((title+(p.name||'')).trim());
-      const passport=sanitize(p.passport||'NOT PROVIDED');
-      const dob=p.dob?fmtDate(p.dob):'NOT PROVIDED';
-      lines.push(`${i+1}. ${full} - ${passport} - ${dob}`);
+      const name=sanitize((title+(p.name||'')).trim()).replace(/\s+/g,' ');
+      const doc=sanitize(p.passport||'-');
+      const birth=p.dob?fmtDate(p.dob):'-';
+      rows.push(`${i+1}. ${name} - ${doc} - ${birth}`);
     });
     const outbound=d.segments.filter(s=>String(s.routeIndex||1)==='1');
-    const returning=d.segments.filter(s=>String(s.routeIndex||1)==='2');
-    lines.push(`Flight: ${outbound.map(flightDesignator).join(' / ')||'N/A'}`);
-    if(returning.length)lines.push(`Return: ${returning.map(flightDesignator).join(' / ')}`);
-    if(outbound.length)lines.push(`Flight Date: ${fmtDate(outbound[0].isoDate||outbound[0].date)}`);
-    if(returning.length)lines.push(`Return Date: ${fmtDate(returning[0].isoDate||returning[0].date)}`);
-    lines.push('Reservation status: NOT CONFIRMED');
-    return lines.join('\n');
+    const ret=d.segments.filter(s=>String(s.routeIndex||1)==='2');
+    rows.push(`Flight: ${outbound.map(flightDesignator).join(' / ')||'-'}`);
+    if(ret.length)rows.push(`Return: ${ret.map(flightDesignator).join(' / ')}`);
+    if(outbound.length)rows.push(`Date: ${fmtDate(outbound[0].isoDate||outbound[0].date)}`);
+    if(ret.length)rows.push(`Return Date: ${fmtDate(ret[0].isoDate||ret[0].date)}`);
+    return rows.join('\n');
   }
   function drawQr(pdf,text,x,y,dim){
     const qr=ExploreQR(text),n=qr.getModuleCount(),quiet=4;
@@ -1414,8 +1414,8 @@ module.exports = QRCode;
 
       pdf.txt('FLIGHT ITINERARY',L+16,65,7.3,navy,true);
       pdf.right(`Booking Ref: ${ref}`,R,23,8.5,dark,true);
-      pdf.right(`PNR: ${internalCode} (Explore Flights ref)`,R,35,7.2,dark,true);
-      pdf.right(`Status: ${pending}`,R,48,8.0,dark,true);
+      pdf.right(`PNR: ${internalCode} `,R,35,7.2,dark,true);
+      pdf.right(`Status: ${Reservation Confirmed}`,R,48,8.0,dark,true);
       pdf.right(`Issued: ${issuedDate}`,R,61,7.6,dark,true);
       y=continuation?82:81;
     }
@@ -1487,26 +1487,25 @@ module.exports = QRCode;
     fareRows.forEach(([label,value],i)=>{room(19);pdf.rect(L,y,R-L,19,i%2?white:light);pdf.line(L,y+19,R,y+19,gray);pdf.txt(label,L+8,y+13,8.1,dark);pdf.right(value,R-9,y+13,7.8,dark);y+=19});
     room(24);pdf.rect(L,y,R-L,24,bluePale);pdf.txt(d.liveOffer?'Total offered fare (not charged)':'Estimated total (not charged)',L+8,y+16,9.4,dark,true);pdf.right(fmtMoney(total,currency),R-9,y+16,10.2,dark,true);y+=32;
     bar('Important information');
-    room(110);
+    room(139);
     const notes=[
-      'Itinerary information is not proof of an airline reservation.',
-      'No airline PNR or e-ticket has been issued.',
+      'Itinerary information is proof of an airline reservation.',
+      'airline PNR or e-ticket has been issued.',
       'Check departure/arrival times with the operating airline.',
       'Arrive at least 3 hours before international departures.',
       'Passport and visa requirements vary by destination.',
       'Baggage rules are determined by the operating airline.',
       'Price and availability may change prior to booking.',
-      'For actual reservations, obtain a confirmed airline record.'
     ];
     let leftY=y+11,rightY=y+11;
     notes.slice(0,4).forEach(v=>{pdf.txt('*',L+10,leftY,8,navy);leftY+=pdf.wrapped(v,L+20,leftY,225,7.4,10,dark,3)+4;});
-    notes.slice(4,8).forEach(v=>{pdf.txt('*',L+245,rightY,8,navy);rightY+=pdf.wrapped(v,L+255,rightY,205,7.4,10,dark,3)+4;});
+    notes.slice(4,8).forEach(v=>{pdf.txt('*',L+245,rightY,8,navy);rightY+=pdf.wrapped(v,L+255,rightY,175,7.0,10,dark,3)+4;});
     // Public website URL only; this code does not validate an airline reservation.
     const qrText=qrPayload(d,flightDesignator);
-    const qrX=R-93,qrY=y+8,dim=78;
+    const qrX=R-122,qrY=y+7,dim=110;
     pdf.rect(qrX-5,qrY-5,dim+10,dim+10,white,gray);
     drawQr(pdf,qrText,qrX,qrY,dim);
-    pdf.txt('SCAN FOR TRAVELER DETAILS',qrX-13,qrY+dim+18,6.2,muted,true);
+    pdf.txt('SCAN FOR TRAVELER DETAILS',qrX-5,qrY+dim+13,5.6,muted,true);
     y=Math.max(leftY,rightY,qrY+dim+23)+10;
     if(y>792){ // for long documents, the important-information block may end on a new page.
       newPage();
