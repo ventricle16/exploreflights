@@ -192,3 +192,15 @@ body{background:#fcfdff}h1,h2,h3,h4{letter-spacing:-.045em}.btn{border-radius:12
 .passport-scan-status.scan-error{color:#9b3b27;background:#fff2ee;border-color:#f7ccc1}
 .passport-spinner{flex:0 0 14px;height:14px;border:2px solid #bcd4fa;border-top-color:#2063b9;border-radius:50%;animation:ef-spin .8s linear infinite}
 @media(max-width:560px){.passport-scan-panel{padding:13px;gap:10px}.passport-scan-badge{flex-basis:34px;height:34px}.passport-upload-button{width:100%}.passport-scan-actions>span{width:100%;font-size:10px}}
+
+/* Smart airport suggestions: matches city, country or IATA code and stays in viewport. */
+.airport-field{overflow:visible}
+.airport-suggestions{position:absolute;top:calc(100% + 7px);left:0;z-index:95;width:max(100%,280px);max-width:min(380px,calc(100vw - 38px));max-height:330px;overflow:auto;border:1px solid #dce7f5;background:#fff;border-radius:13px;box-shadow:0 18px 46px rgba(10,40,80,.2);padding:5px}
+.airport-suggestions[hidden]{display:none!important}
+.airport-suggestion{background:#fff;border:0;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;width:100%;padding:12px;border-radius:9px;color:#1b3554;cursor:pointer}
+.airport-suggestion:hover,.airport-suggestion:focus-visible,.airport-suggestion[aria-selected=true]{background:#eef5ff;outline:0}
+.airport-suggestion-main{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:750}
+.airport-suggestion-main b{border-radius:6px;background:#e3edfc;color:#175db4;padding:4px 6px;font-size:10px}
+.airport-suggestion small{font-size:10px;color:#78889d;text-align:right}
+.airport-none{padding:14px;font-size:12px;color:#75879b}
+@media(max-width:690px){.airport-suggestions{width:calc(100vw - 38px);max-width:340px}.flight-grid .airport-field:nth-of-type(2) .airport-suggestions{right:0;left:auto}}
