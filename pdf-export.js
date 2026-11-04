@@ -1408,7 +1408,7 @@ module.exports = QRCode;
     const ink=palette[code]||navy,ref=sanitize(d.bookingReference||'EF-ITINERARY');
     const currency=d.liveOffer&&d.currency?d.currency:'BDT';
     const total=d.liveOffer?Number(d.fareTotal||0):Number(d.fareSample||0)*d.travelers.length;
-    const pending='ITINERARY CREATED';
+    const pending='NOT CONFIRMED';
     function top(continuation=false){
       if(logo)pdf.fittedImage(logo,L+8,13,147,37);
 
@@ -1489,8 +1489,8 @@ module.exports = QRCode;
     bar('Important information');
     room(110);
     const notes=[
-      'Itinerary information is proof of an airline reservation.',
-      'airline PNR or e-ticket has been issued.',
+      'Itinerary information is not proof of an airline reservation.',
+      'No airline PNR or e-ticket has been issued.',
       'Check departure/arrival times with the operating airline.',
       'Arrive at least 3 hours before international departures.',
       'Passport and visa requirements vary by destination.',
