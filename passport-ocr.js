@@ -86,7 +86,18 @@
     const {line1:a,line2:b,checks,compositeValid}=found;
     const names=a.slice(5).split('<<');
     const last=(names[0]||'').replace(/<+/g,' ').trim();
-    const first=names.slice(1).join(' ').replace(/<+/g,' ').trim();
+    // OCR often mistakes trailing MRZ filler '<' for long runs of I/L/1.
+    // These are not given names. Remove only suspicious long filler runs,
+    // never short legitimate given-name characters.
+    const rawGiven=names.slice(1).join(' ').replace(/<+/g,' ').trim();
+    const first=rawGiven.split(/\s+/).filter(token=>{
+      if(/(?:L|I|1|K|C){6,}/.test(token) && /(.)\1{3,}/.test(token))return false;
+      if(/(.)\1{4,}/.test(token))return false;
+      return true;
+    }).map(token=>token.replace(/(?:L|I|1){5,}$/,'')).filter(Boolean).join(' ').trim();
+    // Names contaminated by a fake filler run must be reviewed rather than
+    // confidently filling OCR garbage into the passenger form.
+
     if(!/^[A-Z][A-Z ]{0,42}$/.test(last)|| (first&&!/^[A-Z][A-Z ]{0,42}$/.test(first)))throw new Error('MRZ name is unclear. Please retake the photo showing both machine-readable lines.');
     const nat=b.slice(10,13).replace(/0/g,'O').replace(/1/g,'I');
     const gender=b[20]==='M'?'Male':b[20]==='F'?'Female':'';
@@ -202,3 +213,4 @@
   root.ExplorePassportOCR=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
+
