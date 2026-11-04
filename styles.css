@@ -219,3 +219,52 @@ body{background:#fcfdff}h1,h2,h3,h4{letter-spacing:-.045em}.btn{border-radius:12
 @media(max-width:940px){.flight-grid .swap-button{left:calc(33.33% - 15px)}}
 @media(max-width:690px){.flight-grid .swap-button{left:calc(50% - 12px);top:8px}}
 
+/* Explore Flights 2026 premium visual refresh — visual-only route animations */
+:root{--ef-glow:#54e4d1;--ef-night:#071a39}
+html{scroll-behavior:smooth}
+body{background:#f6f9fe}
+.hero{background:radial-gradient(ellipse 39% 60% at 76% 16%,rgba(45,175,210,.21),transparent 100%),radial-gradient(ellipse 46% 48% at 3% 96%,rgba(54,105,231,.20),transparent 100%),linear-gradient(117deg,#06152e 0%,#0a2650 53%,#0a3964 100%);padding-top:78px}
+.hero:before{opacity:.15;background-size:32px 32px}
+.hero-inner{min-height:360px;align-items:flex-start}
+.hero-copy{max-width:595px;padding-top:20px}
+.hero h1{font-size:clamp(44px,4.6vw,69px);line-height:1.09;letter-spacing:-.055em}
+.hero h1 span{background:linear-gradient(95deg,#b5e9ff,#55e4c7 93%);-webkit-background-clip:text;background-clip:text}
+.hero-copy>p{max-width:535px;color:#c3d8ef;font-size:16px}
+.hero-badges span{border-radius:90px;background:rgba(173,214,255,.07);border:1px solid rgba(187,221,255,.10);padding:9px 13px;backdrop-filter:blur(9px)}
+.hero-search{z-index:8}
+.search-widget{box-shadow:0 26px 75px rgba(11,44,90,.19),0 1px 0 rgba(255,255,255,.85) inset;border:1px solid rgba(226,234,248,.88);border-radius:23px}
+.search-field{background:linear-gradient(145deg,#fafcff,#f2f7fd);border:1px solid #e3ebf5;transition:transform .22s,border-color .22s,box-shadow .22s}
+.search-field:focus-within{background:#fff;transform:translateY(-2px);box-shadow:0 8px 26px rgba(39,118,213,.14)}
+.btn-primary,.btn-search{background:linear-gradient(130deg,#2476ec,#1553c5)!important;border-color:transparent!important;box-shadow:0 8px 20px rgba(36,113,231,.22);transition:transform .22s ease,box-shadow .22s ease,filter .22s}
+.btn-primary:hover,.btn-search:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(33,102,222,.30);filter:saturate(1.12)}
+.service-card,.step-card,.destination-card,.result-card{transition:transform .28s ease,box-shadow .28s ease,border-color .28s ease}
+.service-card:hover,.step-card:hover,.result-card:hover{transform:translateY(-5px);box-shadow:0 18px 40px rgba(10,39,80,.12)}
+.ef-hero-visual{position:absolute;right:0;top:5px;width:min(450px,44%);border:1px solid rgba(154,213,255,.24);border-radius:23px;background:linear-gradient(150deg,rgba(32,91,144,.29),rgba(5,28,63,.87));box-shadow:0 25px 80px rgba(0,5,23,.26),inset 0 1px 0 rgba(255,255,255,.13);overflow:hidden;backdrop-filter:blur(18px);z-index:1}
+.ef-radar-head,.ef-radar-foot{display:flex;align-items:center;justify-content:space-between;padding:17px 20px;position:relative;z-index:2}
+.ef-radar-head{border-bottom:1px solid rgba(190,223,255,.12)}.ef-radar-foot{border-top:1px solid rgba(190,223,255,.12);gap:5px;color:#c6d8f2;font-size:10px;font-weight:650}
+.ef-radar-foot span{white-space:nowrap}.ef-radar-foot i{display:inline-block;width:5px;height:5px;margin-right:5px;border-radius:50%;background:#5adecc}
+.ef-radar-pill{font-size:10px;color:#dbf6fb;font-weight:900;letter-spacing:.09em;display:flex;align-items:center;gap:10px}.ef-radar-meta{font-size:9px;color:#a6bdd9;letter-spacing:.12em;font-weight:700}
+.ef-radar-pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:#5cf4ca;box-shadow:0 0 0 5px rgba(92,244,202,.10);animation:ef-pulse 2.5s infinite}
+.ef-map{height:240px;position:relative;overflow:hidden;background:radial-gradient(circle at 57% 42%,rgba(38,129,224,.15),transparent 65%)}
+.ef-map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(145,201,250,.048) 1px,transparent 1px),linear-gradient(90deg,rgba(145,201,250,.048) 1px,transparent 1px);background-size:25px 25px}
+.ef-radar-ring{position:absolute;width:270px;height:270px;border:1px solid rgba(141,209,255,.15);border-radius:50%;left:25%;top:-13%}.ef-ring-two{width:175px;height:175px;left:36%;top:6%}
+.ef-radar-sweep{position:absolute;width:330px;height:330px;top:-40px;left:17%;border-radius:50%;background:conic-gradient(from 225deg,transparent 0deg,transparent 280deg,rgba(43,220,197,.08) 355deg,transparent 360deg);animation:ef-spin 16s linear infinite;pointer-events:none}
+.ef-route-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:1}
+.ef-flight-trail{fill:none;stroke:url(#ef-path-gradient);stroke-width:2;stroke-dasharray:6 6;opacity:.87;animation:ef-dashes 28s linear infinite}.ef-trail-soft{opacity:.18;stroke-width:1.2}
+.ef-plane-moving{filter:drop-shadow(0 0 7px rgba(105,250,223,.55));offset-path:path('M76 183 Q205 11 387 73');offset-rotate:auto 90deg;animation:ef-travel 9s ease-in-out infinite}
+.ef-map-location{position:absolute;z-index:2;display:flex;flex-direction:column;font-size:10px;color:#a8c8eb;line-height:1.2}.ef-map-location strong{font-size:17px;color:white}.ef-location-a{left:9%;top:75%}.ef-location-b{right:7%;top:14%}
+.ef-route-info{position:absolute;z-index:3;bottom:8px;left:33%;right:15%;color:#deedfd;display:flex;flex-direction:column;gap:4px}.ef-route-info span{font-weight:800;color:#5ee7ca;font-size:8px;letter-spacing:.12em}.ef-route-info strong{font-size:15px}.ef-route-info small{font-size:9px;color:#a9bfd7;max-width:220px}
+@keyframes ef-travel{0%{offset-distance:0%;opacity:0}8%{opacity:1}88%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes ef-spin{to{transform:rotate(360deg)}}@keyframes ef-pulse{50%{box-shadow:0 0 0 9px rgba(92,244,202,0)}}@keyframes ef-dashes{to{stroke-dashoffset:-240}}
+.ef-flight-showcase{padding:74px 0 80px;background:#f7faff}.ef-showcase-header{display:flex;justify-content:space-between;align-items:end;gap:28px;margin-bottom:25px}.ef-showcase-header h2{font-size:clamp(27px,3vw,39px);letter-spacing:-.05em;margin:7px 0}.ef-showcase-header p{font-size:14px;color:#6c809b;margin-top:6px}.ef-showcase-kicker{color:#256ce0;font-size:10px;font-weight:900;letter-spacing:.16em}.ef-preview-indicator{display:flex;align-items:center;gap:12px;border:1px solid #dbe8f6;background:#fff;border-radius:50px;padding:11px 16px;color:#446181;font-size:11px;font-weight:800;white-space:nowrap}
+.ef-flight-scene{position:relative;min-height:225px;overflow:hidden;color:white;border-radius:22px;background:radial-gradient(ellipse at 45% 25%,rgba(34,154,228,.24),transparent 65%),linear-gradient(110deg,#0a1c3a,#0f3665);box-shadow:0 15px 50px rgba(16,47,92,.15)}
+.ef-scene-glow{position:absolute;inset:0;background-image:radial-gradient(rgba(180,221,253,.15) 1px,transparent 1px);background-size:26px 26px}
+.ef-scene-line{position:absolute;left:23%;right:22%;height:1px;border-top:2px dashed rgba(142,228,241,.46);top:48%;transform:rotate(-6deg)}.ef-scene-line-two{opacity:.22;transform:rotate(5deg);top:60%}.ef-scene-dot{position:absolute;right:-4px;top:-5px;width:10px;height:10px;background:#70e5da;border-radius:50%;box-shadow:0 0 0 9px rgba(112,229,218,.08)}
+.ef-scene-airplane{position:absolute;left:26%;top:36%;font-size:38px;filter:drop-shadow(0 0 12px rgba(113,240,232,.9));animation:ef-scene-fly 10s ease-in-out infinite}
+@keyframes ef-scene-fly{0%{transform:translateX(0) translateY(18px) rotate(-6deg);opacity:0}10%{opacity:1}88%{opacity:1}100%{transform:translateX(36vw) translateY(-25px) rotate(-6deg);opacity:0}}
+.ef-scene-from,.ef-scene-to{position:absolute;top:28%;display:flex;flex-direction:column;gap:8px;z-index:2}.ef-scene-from{left:7%}.ef-scene-to{right:7%;text-align:right}.ef-scene-from>span,.ef-scene-to>span{font-size:10px;letter-spacing:.15em;color:#91d9e9;font-weight:800}.ef-scene-from>strong,.ef-scene-to>strong{font-size:clamp(19px,3vw,31px);letter-spacing:-.04em}.ef-scene-from small,.ef-scene-to small{font-size:12px;color:#a8c4e0}.ef-scene-note{position:absolute;bottom:19px;left:7%;color:#a6bdd9;font-size:10px}
+.ef-showcase-features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:21px}.ef-showcase-features>div{display:flex;align-items:center;gap:12px;padding:16px 20px;border:1px solid #e0eaf5;border-radius:15px;background:#fff;box-shadow:0 4px 20px rgba(16,46,86,.035)}.ef-showcase-features span{background:#eaf3ff;color:#175cd4;padding:10px;border-radius:10px;font-size:11px;font-weight:900}.ef-showcase-features strong{font-size:14px;white-space:nowrap}.ef-showcase-features small{color:#8191a7;font-size:10px;line-height:1.3}
+@media(max-width:1100px){.ef-hero-visual{width:39%;top:20px}.hero-copy{max-width:60%}.hero h1{font-size:clamp(37px,4.3vw,55px)}.ef-radar-meta{display:none}.ef-route-info{left:30%;right:8%}}
+@media(max-width:800px){.hero-copy{max-width:100%}.hero-inner{min-height:370px}.ef-hero-visual{width:40%;right:0;top:30px;opacity:.27;pointer-events:none}.ef-hero-visual .ef-radar-head,.ef-hero-visual .ef-radar-foot{display:none}.ef-hero-visual .ef-map{height:320px}.ef-showcase-features>div{flex-direction:column;align-items:flex-start}.ef-showcase-header{align-items:flex-start;flex-direction:column}.ef-scene-airplane{animation-duration:8s}}
+@media(max-width:560px){.hero{padding-top:46px}.hero-inner{min-height:305px}.hero-copy{padding-top:0}.hero h1{font-size:clamp(34px,9vw,43px)}.hero-copy>p{font-size:13px}.ef-hero-visual{position:relative;width:100%;right:auto;top:auto;opacity:1;margin:26px 0 0;display:none}.ef-flight-showcase{padding:46px 0 60px}.ef-showcase-header h2{font-size:28px}.ef-flight-scene{min-height:185px}.ef-scene-from,.ef-scene-to{top:20%}.ef-scene-from{left:7%}.ef-scene-to{right:7%}.ef-scene-from>strong,.ef-scene-to>strong{font-size:21px}.ef-scene-line{left:28%;right:25%;top:59%}.ef-scene-airplane{top:47%;font-size:27px;left:28%}.ef-scene-note{left:7%;font-size:9px;max-width:85%}.ef-showcase-features{grid-template-columns:1fr;gap:10px}.ef-showcase-features>div{flex-direction:row;padding:14px 16px}.ef-showcase-features small{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.ef-plane-moving,.ef-radar-sweep,.ef-radar-pulse,.ef-flight-trail,.ef-scene-airplane{animation:none!important}.ef-plane-moving{offset-distance:55%;opacity:1}.ef-scene-airplane{transform:translateX(15vw) translateY(-10px);opacity:1}}
