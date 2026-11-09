@@ -5,6 +5,7 @@
   const airports = [
     ['DAC','Dhaka','Bangladesh'],['CGP','Chattogram','Bangladesh'],['ZYL','Sylhet','Bangladesh'],
     ['KUL','Kuala Lumpur','Malaysia'],['BKK','Bangkok','Thailand'],['SIN','Singapore','Singapore'],
+    ['MNL','Manila','Philippines'],
     ['DXB','Dubai','United Arab Emirates'],['JED','Jeddah','Saudi Arabia'],['LIS','Lisbon','Portugal'],
     ['MLA','Valletta','Malta'],['DPS','Denpasar (Bali)','Indonesia'],['KIX','Osaka','Japan'],
     ['BEG','Belgrade','Serbia'],['HKG','Hong Kong','Hong Kong'],['LHR','London','United Kingdom'],
