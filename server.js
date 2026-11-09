@@ -118,6 +118,19 @@ async function handler(req,res){
     // A blank logo is not silently replaced with a fabricated airline emblem.
     return respond(res,404,{error:`Verified airline logo for ${code} unavailable. Add assets/airlines/${code}.png or configure licensed AIRHEX_API_KEY.`});
   }
+  if(u.pathname==='/api/airports/suggest' && req.method==='GET'){
+    if(!allow(req,res))return;
+    const query=(u.searchParams.get('query')||'').trim();
+    if(query.length<2||query.length>80||/[\x00-\x1f]/.test(query))return respond(res,400,{error:'Enter 2–80 characters of an airport or city name.'});
+    if(!TOKEN)return respond(res,503,{error:'Worldwide airport suggestions require DUFFEL_ACCESS_TOKEN on the server.'});
+    try{
+      const result=await callDuffel('/places/suggestions?query='+encodeURIComponent(query));
+      const airports=(Array.isArray(result.data)?result.data:[]).filter(a=>a.type==='airport'&&/^[A-Z]{3}$/.test(a.iata_code||''))
+        .map(a=>({code:a.iata_code,city:a.city_name||a.city?.name||a.name||a.iata_code,country:a.iata_country_code||a.country?.name||'',name:a.name||''}));
+      return respond(res,200,{airports:airports.slice(0,30),source:'Duffel Places'});
+    }catch(e){console.error('Airport suggestions:',e.message);return respond(res,e.status===401||e.status===403?502:503,{error:'Airport directory is temporarily unavailable.'});}
+  }
+  if(u.pathname==='/api/health' && req.method==='GET'){return respond(res,200,{ok:true,service:'Explore Flights',node:process.version,duffelConfigured:!!TOKEN,localLogoFiles:true})}
   if(u.pathname==='/api/config'){return respond(res,200,{connected:!!TOKEN,provider:'Duffel',message:TOKEN?'Provider token configured. Search results identify test versus live inventory.':'Live inventory requires a Duffel API token on the server.'})}
   if(u.pathname.startsWith('/api/')){
     if(!allow(req,res))return;
@@ -159,3 +172,4 @@ async function handler(req,res){
 const server=http.createServer((req,res)=>{handler(req,res).catch(e=>{console.error(e);if(!res.headersSent)respond(res,500,{error:'Internal server error'})})});
 if(require.main===module)server.listen(PORT,'0.0.0.0',()=>console.log(`Explore Flights listening on 0.0.0.0:${PORT} (flight provider ${TOKEN?'configured':'not configured'})`));
 module.exports={server,safeOffer,flightDuration};
+
