@@ -4,8 +4,7 @@
   'use strict';
   const airports = [
     ['DAC','Dhaka','Bangladesh'],['CGP','Chattogram','Bangladesh'],['ZYL','Sylhet','Bangladesh'],
-    ['KUL','Kuala Lumpur','Malaysia'],['BKK','Bangkok','Thailand'],['SIN','Singapore','Singapore'],
-    ['MNL','Manila','Philippines'],
+    ['KUL','Kuala Lumpur','Malaysia'],['BKK','Bangkok','Thailand'],['SIN','Singapore','Singapore'],['MNL','Manila','Philippines'],
     ['DXB','Dubai','United Arab Emirates'],['JED','Jeddah','Saudi Arabia'],['LIS','Lisbon','Portugal'],
     ['MLA','Valletta','Malta'],['DPS','Denpasar (Bali)','Indonesia'],['KIX','Osaka','Japan'],
     ['BEG','Belgrade','Serbia'],['HKG','Hong Kong','Hong Kong'],['LHR','London','United Kingdom'],
@@ -20,8 +19,31 @@
     ['NRT','Tokyo','Japan'],['EVN','Yerevan','Armenia'],['RMO','Chișinău','Moldova'],
     ['AUH','Abu Dhabi','United Arab Emirates'],['MCT','Muscat','Oman'],['RUH','Riyadh','Saudi Arabia'],
     ['FRA','Frankfurt','Germany'],['ZRH','Zurich','Switzerland'],['CMB','Colombo','Sri Lanka'],
-    ['MEL','Melbourne','Australia'],['LAX','Los Angeles','United States']
+    ['MEL','Melbourne','Australia'],['LAX','Los Angeles','United States'],
+    ['CEB','Cebu','Philippines'],['CRK','Angeles City (Clark)','Philippines'],['DVO','Davao','Philippines'],
+    ['HND','Tokyo Haneda','Japan'],['KIX','Osaka','Japan'],['PEK','Beijing','China'],['PKX','Beijing Daxing','China'],['PVG','Shanghai','China'],['CAN','Guangzhou','China'],
+    ['SZX','Shenzhen','China'],['HKT','Phuket','Thailand'],['CNX','Chiang Mai','Thailand'],['HAN','Hanoi','Vietnam'],['SGN','Ho Chi Minh City','Vietnam'],
+    ['CGK','Jakarta','Indonesia'],['SUB','Surabaya','Indonesia'],['BWN','Bandar Seri Begawan','Brunei'],['RGN','Yangon','Myanmar'],['PNH','Phnom Penh','Cambodia'],
+    ['BOM','Mumbai','India'],['MAA','Chennai','India'],['BLR','Bengaluru','India'],['HYD','Hyderabad','India'],['AMD','Ahmedabad','India'],
+    ['ISB','Islamabad','Pakistan'],['LHE','Lahore','Pakistan'],['KHI','Karachi','Pakistan'],['MLE','Malé','Maldives'],['KTM','Kathmandu','Nepal'],
+    ['SHJ','Sharjah','United Arab Emirates'],['DWC','Dubai Al Maktoum','United Arab Emirates'],['MED','Medina','Saudi Arabia'],['DMM','Dammam','Saudi Arabia'],
+    ['BAH','Manama','Bahrain'],['KWI','Kuwait City','Kuwait'],['AMM','Amman','Jordan'],['CAI','Cairo','Egypt'],['ADD','Addis Ababa','Ethiopia'],
+    ['NBO','Nairobi','Kenya'],['JNB','Johannesburg','South Africa'],['CPT','Cape Town','South Africa'],['LOS','Lagos','Nigeria'],
+    ['ORY','Paris Orly','France'],['LGW','London Gatwick','United Kingdom'],['STN','London Stansted','United Kingdom'],['MAN','Manchester','United Kingdom'],
+    ['EDI','Edinburgh','United Kingdom'],['DUB','Dublin','Ireland'],['MAD','Madrid','Spain'],['LIS','Lisbon','Portugal'],['ATH','Athens','Greece'],
+    ['MUC','Munich','Germany'],['BER','Berlin','Germany'],['FCO','Rome','Italy'],['VCE','Venice','Italy'],['MXP','Milan','Italy'],
+    ['CPH','Copenhagen','Denmark'],['ARN','Stockholm','Sweden'],['OSL','Oslo','Norway'],['BRU','Brussels','Belgium'],
+    ['PRG','Prague','Czechia'],['BUD','Budapest','Hungary'],['WAW','Warsaw','Poland'],['OTP','Bucharest','Romania'],
+    ['JFK','New York JFK','United States'],['EWR','Newark','United States'],['BOS','Boston','United States'],['IAD','Washington Dulles','United States'],
+    ['ORD','Chicago','United States'],['ATL','Atlanta','United States'],['DFW','Dallas Fort Worth','United States'],['IAH','Houston','United States'],
+    ['SFO','San Francisco','United States'],['SEA','Seattle','United States'],['MIA','Miami','United States'],['MCO','Orlando','United States'],
+    ['LAS','Las Vegas','United States'],['DEN','Denver','United States'],['YYC','Calgary','Canada'],['YVR','Vancouver','Canada'],
+    ['YUL','Montreal','Canada'],['MEX','Mexico City','Mexico'],['CUN','Cancún','Mexico'],['GRU','São Paulo','Brazil'],
+    ['GIG','Rio de Janeiro','Brazil'],['EZE','Buenos Aires','Argentina'],['SCL','Santiago','Chile'],['BOG','Bogotá','Colombia'],
+    ['LIM','Lima','Peru'],['AKL','Auckland','New Zealand'],['BNE','Brisbane','Australia'],['PER','Perth','Australia']
   ].map(([code,city,country]) => ({code,city,country}));
+  const registeredAirports = new Map(airports.map(a=>[a.code,a]));
+  function rememberAirports(rows){for(const a of rows){if(!/^[A-Z]{3}$/.test(a.code))continue;const old=registeredAirports.get(a.code);if(!old){const entry={code:a.code,city:a.city,country:a.country,name:a.name||''};registeredAirports.set(a.code,entry);airports.push(entry);}else if(a.name&&!old.name){old.name=a.name;}}}
   const carriers = ['Biman Bangladesh','US-Bangla Airlines','Emirates','Qatar Airways','Singapore Airlines','Turkish Airlines','Air Arabia','Thai Airways','Malaysia Airlines','Etihad Airways','Air India','Cathay Pacific','Lufthansa','British Airways'];
   const airlineCodes={'Biman Bangladesh':'BG','US-Bangla Airlines':'BS','Emirates':'EK','Qatar Airways':'QR','Singapore Airlines':'SQ','Turkish Airlines':'TK','Air Arabia':'G9','Thai Airways':'TG','Malaysia Airlines':'MH','Etihad Airways':'EY','Air India':'AI','Cathay Pacific':'CX','Lufthansa':'LH','British Airways':'BA'};
   const airlineColor={'BG':'#D62E30','BS':'#E22126','EK':'#D20C1F','QR':'#65143D','SQ':'#DEAA43','TK':'#C72331','G9':'#E72236','TG':'#6E438F','MH':'#B50D2D','EY':'#B99D71','AI':'#D8232C','CX':'#16685E','LH':'#0A2865','BA':'#173D81'};
@@ -99,7 +121,7 @@
     minus:'<path d="M5 12h14"/>'
   };
   const ic = (name,size=19) => `<svg aria-hidden="true" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">${iconPaths[name]||iconPaths.sparkle}</svg>`;
-  const findAirport = input => {let t=String(input||'').trim().toLowerCase();return airports.find(a=>a.code.toLowerCase()===t || `${a.city} (${a.code})`.toLowerCase()===t) || airports.find(a=>a.city.toLowerCase()===t) || (/^[a-z]{3}$/.test(t)?{code:t.toUpperCase(),city:t.toUpperCase(),country:'Airport'}:null);};
+  const findAirport = input => {let t=String(input||'').trim().toLowerCase();return airports.find(a=>a.code.toLowerCase()===t || `${a.city} (${a.code})`.toLowerCase()===t) || airports.find(a=>a.city.toLowerCase()===t) || (/^[a-z]{3}$/.test(t)?{code:t.toUpperCase(),city:t.toUpperCase(),country:'Unverified IATA code'}:null);};
   const cityText = code => {const a=airports.find(a=>a.code===code);return a?`${a.city} (${a.code})`:code;};
   const airport = code => airports.find(a=>a.code===code)||{code:code||'---',city:code||'Airport',country:''};
   const defaultSegments = () => [{from:'',to:'',date:addDays(14)},{from:'',to:'',date:addDays(18)}];
@@ -120,17 +142,7 @@
       <nav class="nav-links" aria-label="Main navigation">${links.map(([t,v])=>`<a class="${state.view===v?'active':''}" href="#/${v}">${t}</a>`).join('')}</nav>
       <div class="header-actions">${btn(ic('heart',16)+' Saved','saved','btn btn-quiet btn-sm')}${btn('Plan a trip '+ic('arrow-right',16),'start','btn btn-primary btn-sm')}<button aria-label="Toggle menu" class="menu-toggle" data-action="toggle-menu">${ic(state.mobileMenu?'close':'menu',24)}</button></div>
     </div>${state.mobileMenu?`<nav class="mobile-nav">${links.map(([t,v])=>`<a href="#/${v}">${t}</a>`).join('')}<a href="#/saved">Saved trips</a><a href="#/contact">Contact</a>${btn('Plan a trip','start','btn btn-primary')}</nav>`:''}</header>`;}
-  function footer(){return `<footer class="footer"><div class="container"><div class="footer-top"><div class="footer-brand">${logo()}<p>Thoughtful travel planning for people going places. Explore routes, organize trip details and create a clearly marked travel itinerary.</p><div class="footer-trust">${ic('shield',17)} Transparent travel planning</div></div><div class="footer-col"><h4>Explore</h4><a href="#/individuals">For individuals</a><a href="#/agencies">For agencies</a><a href="#/destinations">Destinations</a><a href="#/guides">Visa guides</a><a href="#/tools">Travel tools</a><a href="#/saved">Saved routes</a></div><div class="footer-col"><h4>Resources</h4><a href="#/about">About us</a><a href="#/contact">Contact</a><a href="#/guides">How it works</a><a href="#/pnr">PNR verification</a><a href="#/documents">Documents & receipts</a><a href="#/">Flight search</a></div><div class="footer-col"><h4>Plan your journey</h4><p>Explore Flights is a travel-planning demo. Schedules shown in demo mode are illustrative, not airline reservations.</p><a href="#/contact" class="footer-link">Get in touch ${ic('arrow-right',15)}</a></div></div><div class="footer-bottom"><span>© ${new Date().getFullYear()} Explore Flights. All rights reserved.</span>
-<span>
-  Developed by
-  <a href="https://github.com/ventricle16"
-     target="_blank"
-     rel="noopener noreferrer"
-     style="color:inherit;font-size:12px;font-weight:600;text-decoration:none;">
-    Niloy Sarkar
-  </a>
-</span>
-</div></div></footer>`;}
+  function footer(){return `<footer class="footer"><div class="container"><div class="footer-top"><div class="footer-brand">${logo()}<p>Thoughtful travel planning for people going places. Explore routes, organize trip details and create a clearly marked travel itinerary.</p><div class="footer-trust">${ic('shield',17)} Transparent travel planning</div></div><div class="footer-col"><h4>Explore</h4><a href="#/individuals">For individuals</a><a href="#/agencies">For agencies</a><a href="#/destinations">Destinations</a><a href="#/guides">Visa guides</a><a href="#/tools">Travel tools</a><a href="#/saved">Saved routes</a></div><div class="footer-col"><h4>Resources</h4><a href="#/about">About us</a><a href="#/contact">Contact</a><a href="#/guides">How it works</a><a href="#/pnr">PNR verification</a><a href="#/documents">Documents & receipts</a><a href="#/">Flight search</a></div><div class="footer-col"><h4>Plan your journey</h4><p>Explore Flights is a travel-planning demo. Schedules shown in demo mode are illustrative, not airline reservations.</p><a href="#/contact" class="footer-link">Get in touch ${ic('arrow-right',15)}</a></div></div><div class="footer-bottom"><span>© ${new Date().getFullYear()} Explore Flights. All rights reserved.</span><span>Developed by <a href="https://github.com/ventricle16" target="_blank" rel="noopener noreferrer" class="developer-credit">Niloy Sarkar</a>.</span></div></div></footer>`;}
   function airportField(label,key,iconName='plane-small',segIndex=null){const name=segIndex!==null?`seg-${segIndex}-${key}`:key;const current=segIndex!==null?state.segments[segIndex][key]:state[key];return `<div class="search-field airport-field"><label class="field-label" for="airport-${name}">${label}</label><span class="field-body">${ic(iconName,19)}<input id="airport-${name}" type="text" data-input="${name}" data-airport-entry="1" role="combobox" aria-controls="airport-options-${name}" aria-expanded="false" aria-autocomplete="list" aria-label="${label} airport or city" autocomplete="off" placeholder="Type city or airport" value="${esc(cityText(current))}" required /></span><span class="field-hint">${esc(airport(current).country||'Select from airport suggestions')}</span><div id="airport-options-${name}" class="airport-suggestions" role="listbox" hidden></div></div>`;}
   function dateField(label,key,value,segIndex=null){const name=segIndex!==null?`seg-${segIndex}-${key}`:key;return `<label class="search-field date-field"><span class="field-label">${label}</span><span class="field-body">${ic('calendar',19)}<input type="date" aria-label="${label}" data-input="${name}" min="${today()}" value="${esc(value)}" required /></span></label>`;}
   function airportList(){return '';}
@@ -139,15 +151,42 @@
     if(name.startsWith('seg-')){const [,idx,key]=name.split('-');if(state.segments[+idx])state.segments[+idx][key]=value;}
     else if(name==='from'||name==='to')state[name]=value;
   }
-  function drawAirportSuggestions(input){
-    const parent=input.closest('.airport-field'),list=parent?.querySelector('.airport-suggestions');
-    if(!list)return;
-    const q=input.value.trim().toLowerCase();
-    const matches=(q?airports.filter(a=>[a.city,a.country,a.code,`${a.city} (${a.code})`].some(v=>v.toLowerCase().includes(q))):airportFavorites.map(c=>airports.find(a=>a.code===c)).filter(Boolean)).slice(0,8);
-    list.innerHTML=matches.length?matches.map((a,i)=>`<button type="button" class="airport-suggestion" role="option" id="${list.id}-item-${i}" data-airport-select="${esc(a.code)}" data-airport-target="${esc(input.dataset.input)}" aria-selected="false"><span class="airport-suggestion-main">${esc(a.city)} <b>${esc(a.code)}</b></span><small>${esc(a.country)}</small></button>`).join(''):'<div class="airport-none">No matching airport. Try an IATA code (e.g. DAC).</div>';
+  const airportLookupCache=new Map();
+  const airportLookupTimers=new Map();
+  function matchingAirports(q){
+    if(!q)return airportFavorites.map(c=>registeredAirports.get(c)).filter(Boolean);
+    const normalized=q.toLowerCase();
+    const score=a=>a.code.toLowerCase()===normalized?0:a.city.toLowerCase()===normalized?1:a.code.toLowerCase().startsWith(normalized)?2:a.city.toLowerCase().startsWith(normalized)?3:a.name?.toLowerCase().startsWith(normalized)?4:5;
+    return airports.filter(a=>[a.city,a.country,a.code,a.name||'',`${a.city} (${a.code})`].some(v=>v.toLowerCase().includes(normalized))).sort((a,b)=>score(a)-score(b)).slice(0,8);
+  }
+  function displayAirportChoices(input,matches,message=''){
+    if(!input.isConnected)return;
+    const list=input.closest('.airport-field')?.querySelector('.airport-suggestions');if(!list)return;
+    list.innerHTML=matches.length?matches.slice(0,8).map((a,i)=>`<button type="button" class="airport-suggestion" role="option" id="${list.id}-item-${i}" data-airport-select="${esc(a.code)}" data-airport-target="${esc(input.dataset.input)}" aria-selected="false"><span class="airport-suggestion-main">${esc(a.city)} <b>${esc(a.code)}</b></span><small>${esc(a.country)}${a.name&&a.name!==a.city?' · '+esc(a.name):''}</small></button>`).join(''):`<div class="airport-none">${esc(message||'No matching airport. Try an IATA code (e.g. MNL).')}</div>`;
     document.querySelectorAll('.airport-suggestions').forEach(el=>{if(el!==list)el.hidden=true});
     document.querySelectorAll('input[data-airport-entry]').forEach(el=>{if(el!==input)el.setAttribute('aria-expanded','false')});
     list.hidden=false;input.setAttribute('aria-expanded','true');
+  }
+  function drawAirportSuggestions(input){
+    const q=input.value.trim();const local=matchingAirports(q);
+    displayAirportChoices(input,local, q.length>=2?'Searching worldwide airports…':'Type at least 2 letters to search worldwide airports');
+    const name=input.dataset.input;
+    if(airportLookupTimers.has(name))clearTimeout(airportLookupTimers.get(name));
+    if(q.length<2)return;
+    airportLookupTimers.set(name,setTimeout(async()=>{
+      const key=q.toLowerCase();let response=airportLookupCache.get(key);
+      if(!response){
+        try{const r=await fetch('/api/airports/suggest?query='+encodeURIComponent(q),{headers:{Accept:'application/json'}});
+          if(!r.ok)throw Error('Worldwide suggestions unavailable');
+          const d=await r.json();response=Array.isArray(d.airports)?d.airports:[];
+          airportLookupCache.set(key,response);if(airportLookupCache.size>150)airportLookupCache.delete(airportLookupCache.keys().next().value);
+        }catch(_){if(input.isConnected&&input.value.trim()===q&&!local.length)displayAirportChoices(input,[], 'Global search unavailable. Type a 3-letter IATA code, or connect Duffel in hosting.');return;}
+      }
+      rememberAirports(response);
+      if(!input.isConnected||input.value.trim()!==q||document.activeElement!==input)return;
+      const combined=[...response,...matchingAirports(q)].filter((a,i,all)=>all.findIndex(b=>b.code===a.code)===i);
+      displayAirportChoices(input,combined);
+    },260));
   }
   function closeAirportSuggestions(){document.querySelectorAll('.airport-suggestions').forEach(el=>el.hidden=true);document.querySelectorAll('input[data-airport-entry]').forEach(el=>el.setAttribute('aria-expanded','false'));}
   function chooseAirport(name,code){const a=airports.find(a=>a.code===code);if(!a)return;setAirportState(name,a.code);const input=Array.from(document.querySelectorAll('input[data-airport-entry]')).find(el=>el.dataset.input===name);if(input){input.value=cityText(code);const hint=input.closest('.airport-field')?.querySelector('.field-hint');if(hint)hint.textContent=a.country;}closeAirportSuggestions();}
@@ -464,3 +503,4 @@ const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.actio
   window.addEventListener('hashchange',()=>{const dest=location.hash.replace(/^#\/?/,'').split('?')[0]||'home';if(dest!==state.view){state.view=routes.includes(dest)?dest:'home';state.mobileMenu=false;state.error='';render();window.scrollTo(0,0);}});
   const initial=location.hash.replace(/^#\/?/,'').split('?')[0]||'home';state.view=routes.includes(initial)?initial:'home';render();
 })();
+
